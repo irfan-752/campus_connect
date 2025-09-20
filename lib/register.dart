@@ -47,8 +47,77 @@ class Register extends StatelessWidget {
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                     borderSide: BorderSide(color: Colors.black),
                   ),
+                  filled: true,
+                  fillColor: Colors.lightBlueAccent,
+                  labelText: "Email",
                 ),
               ),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  filled: true,
+                  fillColor: Colors.lightBlueAccent,
+                  labelText: "Password",
+                ),
+              ),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  filled: true,
+                  fillColor: Colors.lightBlueAccent,
+                  labelText: "Confirm password",
+                ),
+              ),
+              SizedBox(height: 20),
+              Align(
+                alignment: AlignmentGeometry.topLeft,
+                child: Text(
+                  "REGISTER as",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+              Align(
+                alignment: AlignmentGeometry.bottomRight,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  child: Text("Register"),
+                ),
+              ),
+
+              //DropdownMenu(dropdownMenuEntries: [DropdownMenuEntry(value: , label: "dxcg")])
             ],
           ),
         ),
