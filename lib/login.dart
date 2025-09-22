@@ -1,119 +1,135 @@
-import 'package:campus_connect/register.dart';
 import 'package:flutter/material.dart';
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 20, right: 20),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(height: 80),
-
-              Text(
-                "Campus",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 43,
-                  fontWeight: FontWeight.bold,
+              // Top branding
+              Container(
+                width: double.infinity,
+                height: 200,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF00B4FF), Color(0xFF007BFF)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(60),
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'campus',
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'connect',
+                        style: TextStyle(
+                          fontSize: 22,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Your digital campus hub',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              Text(
-                "Connect",
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text("Your digital campus hub"),
-              SizedBox(height: 120),
-              Align(
-                alignment: Alignment.topLeft,
-
-                child: Text(
-                  "Login",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    borderSide: BorderSide(
-                      color: const Color.fromARGB(255, 13, 13, 14),
+              const SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Login',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    borderSide: BorderSide(color: Colors.black),
-                  ),
-                  filled: true,
-                  fillColor: Colors.lightBlueAccent,
-                  labelText: "Email",
-
-                  prefixIcon: Icon(Icons.email_rounded),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    borderSide: BorderSide(color: Colors.black),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    borderSide: BorderSide(color: Colors.black),
-                  ),
-                  suffixIcon: Icon(Icons.visibility),
-                  filled: true,
-                  fillColor: Colors.lightBlueAccent,
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.password),
-                ),
-              ),
-              SizedBox(height: 30),
-              Text(
-                "Forget password ?",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 28, 142, 218),
-                    foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.black),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                    const SizedBox(height: 20),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text("Login"),
+                    const SizedBox(height: 16),
+                    TextField(
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {},
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {},
+                      child: const Text(
+                        'Login',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Don’t have an account? "),
+                        GestureDetector(
+                          onTap: () {
+                            // Navigate to register
+                          },
+                          child: const Text(
+                            'Register',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(height: 40),
-              Text("Don't have an account?"),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Register()),
-                  );
-                },
-                child: Text(
-                  "REGISTER",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-              ),
+              )
             ],
           ),
         ),
