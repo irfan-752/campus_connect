@@ -86,7 +86,7 @@ class Register extends StatelessWidget {
               ),
               SizedBox(height: 20),
               Align(
-                alignment: AlignmentGeometry.topLeft,
+                alignment: Alignment.topLeft,
                 child: Text(
                   "REGISTER as",
                   style: TextStyle(
@@ -110,7 +110,7 @@ class Register extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Align(
-                alignment: AlignmentGeometry.bottomRight,
+                alignment: Alignment.bottomRight,
                 child: ElevatedButton(
                   onPressed: () {},
                   child: Text("Register"),
