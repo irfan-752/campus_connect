@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'register.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -220,10 +220,10 @@ class LoginBackgroundClipper extends CustomClipper<Path> {
     final path = Path();
 
     // Start at very top-left corner
-    path.moveTo(0, 0);
+    path.moveTo(60, 6);
 
     // go down a bit on left (high left)
-    path.lineTo(0, size.height * 0.4);
+    path.lineTo(0, size.height * 0.0);
 
     // create slope down to right
     path.quadraticBezierTo(

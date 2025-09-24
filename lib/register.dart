@@ -7,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:campus_connect/home.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -89,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 DropdownButtonFormField<String>(
-                  value: _selectedRole,
+                  initialValue: _selectedRole,
                   decoration: InputDecoration(labelText: 'Role'),
                   onChanged: (newValue) {
                     setState(() {
