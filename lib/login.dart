@@ -1,3 +1,4 @@
+import 'package:campus_connect/forgot_pass.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'register.dart';
@@ -106,7 +107,15 @@ class _LoginPageState extends State<LoginPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ForgotPasswordScreen(),
+                                  ),
+                                );
+                               },
                               child: const Text(
                                 'Forgot Password?',
                                 style: TextStyle(color: Colors.white),
@@ -218,10 +227,10 @@ class LoginBackgroundClipper extends CustomClipper<Path> {
 
     // create slope down to right
     path.quadraticBezierTo(
-      size.width * 0.5,  // control point X (middle)
+      size.width * 0.5, // control point X (middle)
       size.height * 0.05, // control point Y (curve height)
-      size.width,         // end point X (far right)
-      size.height * 0.7   // end point Y (lower on right)
+      size.width, // end point X (far right)
+      size.height * 0.7, // end point Y (lower on right)
     );
 
     // close the shape at bottom
