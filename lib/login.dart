@@ -1,7 +1,11 @@
+import 'package:campus_connect/admin_home.dart';
 import 'package:campus_connect/forgot_pass.dart';
+import 'package:campus_connect/student_home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'register.dart';
+import 'package:campus_connect/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +19,8 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
+  final _authService = AuthService();
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -104,19 +110,35 @@ class _LoginPageState extends State<LoginPage> {
                         /// Password
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            hintText: 'Password',
+                            hintText: "Password",
                             filled: true,
                             fillColor: Colors.grey[100],
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please enter your password'
-                              : null,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter Password';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 8),
@@ -203,19 +225,63 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Hardcoded admin credentials
+    if (email == "admin@malabarcollege.com" && password == "admin123") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+      );
+      return;
+    }
+
+    // Firebase login
+    final error = await _authService.login(email: email, password: password);
+    if (error != null) {
+      _showErrorDialog(error);
+      return;
+    }
+
+    // Get user role from Firestore
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    final userData = userDoc.data();
+    if (userData == null) {
+      _showErrorDialog('User record not found.');
+      return;
+    }
+    final role = userData['role'];
+
+    if (role == 'Student' || role == 'Teacher') {
+      if (userData['approved'] == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => StudentHomeScreen()),
         );
-        // Navigator.pushReplacement(context,
-        //     MaterialPageRoute(builder: (context) => HomePage()));
-      } on FirebaseAuthException catch (e) {
-        _showErrorDialog(e.message ?? 'Login failed');
-      } catch (e) {
-        _showErrorDialog('An unexpected error occurred');
+      } else {
+        _showErrorDialog('Your account is not approved by admin.');
       }
+    } else if (role == 'Parent') {
+      // Check if parent email exists in any student document
+      final parentEmail = email;
+      final students = await FirebaseFirestore.instance
+          .collection('students')
+          .where('parentEmail', isEqualTo: parentEmail)
+          .get();
+      if (students.docs.isNotEmpty) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => StudentHomeScreen()),
+        );
+      } else {
+        _showErrorDialog('Parent email not found in student records.');
+      }
+    } else {
+      _showErrorDialog('Invalid role.');
     }
   }
 

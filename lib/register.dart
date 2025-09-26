@@ -2,6 +2,7 @@ import 'package:campus_connect/login.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:campus_connect/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,9 +17,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   String? _selectedRole;
+  bool _obscurePassword = true; // Add this
 
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _authService = AuthService();
 
   @override
   void dispose() {
@@ -36,16 +39,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
+          Align(
+            alignment: Alignment.bottomCenter,
 
-      Align(alignment: Alignment.bottomCenter,
-      
-        child: Image.asset(
-          "assets/images/login_bg.png",
-          width: size.width,
-          fit: BoxFit.fitWidth, // stretches horizontally, keeps curve on top
-        ),
-      ),
-
+            child: Image.asset(
+              "assets/images/login_bg.png",
+              width: size.width,
+              fit:
+                  BoxFit.fitWidth, // stretches horizontally, keeps curve on top
+            ),
+          ),
 
           /// --- Content ---
           SafeArea(
@@ -107,8 +110,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
 
                   /// Password
-                  _buildTextField(_passwordController, "Password",
-                      isPassword: true),
+                  _buildTextField(
+                    _passwordController,
+                    "Password",
+                    isPassword: true,
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -129,13 +135,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _selectedRole = newValue;
                       });
                     },
-                    items: <String>['Student', 'Teacher', 'Admin']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
+                    items: <String>['Student', 'Teacher', 'Parent']
+                        .map(
+                          (role) =>
+                              DropdownMenuItem(value: role, child: Text(role)),
+                        )
+                        .toList(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please select a role';
@@ -179,7 +184,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const LoginPage()),
+                              builder: (context) => const LoginPage(),
+                            ),
                           );
                         },
                         child: const Text(
@@ -203,11 +209,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   /// --- Custom TextField Widget ---
-  Widget _buildTextField(TextEditingController controller, String hint,
-      {bool isPassword = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint, {
+    bool isPassword = false,
+  }) {
     return TextFormField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? _obscurePassword : false,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -216,6 +225,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
+        // Add suffix icon for password field
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              )
+            : null,
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -226,34 +249,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  /// --- Register Function ---
   void _register() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        final userCredential = await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-
-        await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'role': _selectedRole,
-        });
-
+      if (_selectedRole == 'Parent') {
+        // Check if parent email exists in any student document
+        final parentEmail = _emailController.text.trim();
+        final students = await FirebaseFirestore.instance
+            .collection('students')
+            .where('parentEmail', isEqualTo: parentEmail)
+            .get();
+        if (students.docs.isEmpty) {
+          _showErrorDialog('Parent email not found in student records.');
+          return;
+        }
+      }
+      final error = await _authService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        role: _selectedRole ?? '',
+      );
+      if (error == null) {
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginPage()),
           );
         }
-      } on FirebaseAuthException catch (e) {
-        _showErrorDialog(e.message ?? 'Registration failed');
-      } catch (e) {
-        _showErrorDialog('An unexpected error occurred');
+      } else {
+        _showErrorDialog(error);
       }
     }
   }

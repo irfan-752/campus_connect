@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -11,7 +12,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
+  final _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -111,10 +112,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           onPressed: _resetPassword,
                           child: const Text(
                             'Send Reset Link',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
+                            style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
 
@@ -149,16 +147,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _resetPassword() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      final error = await _authService.sendPasswordResetEmail(
+        _emailController.text.trim(),
+      );
+      if (error == null) {
         _showMessageDialog(
           'Password Reset',
           'A password reset link has been sent to your email.',
         );
-      } on FirebaseAuthException catch (e) {
-        _showMessageDialog('Error', e.message ?? 'Failed to send reset email');
-      } catch (e) {
-        _showMessageDialog('Error', 'An unexpected error occurred');
+      } else {
+        _showMessageDialog('Error', error);
       }
     }
   }
