@@ -1,7 +1,20 @@
+import 'package:campus_connect/manage_users.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'login.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
+
+  void _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,6 +23,11 @@ class AdminHomeScreen extends StatelessWidget {
         title: const Text("Admin Dashboard"),
         backgroundColor: const Color(0xFF0096FF),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
+            onPressed: () => _logout(context),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -28,7 +46,12 @@ class AdminHomeScreen extends StatelessWidget {
               label: "Manage Users",
               description: "Add, edit, or remove students, teachers, parents.",
               onTap: () {
-                // TODO: Navigate to user management screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ManageUsersScreen(),
+                  ),
+                );
               },
             ),
             _SectionTitle("Events & Feedback"),

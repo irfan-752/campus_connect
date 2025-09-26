@@ -225,63 +225,105 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _login() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    // Hardcoded admin credentials
-    if (email == "admin@malabarcollege.com" && password == "admin123") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields correctly')),
       );
       return;
     }
 
-    // Firebase login
-    final error = await _authService.login(email: email, password: password);
-    if (error != null) {
-      _showErrorDialog(error);
-      return;
-    }
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // Get user role from Firestore
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get();
-    final userData = userDoc.data();
-    if (userData == null) {
-      _showErrorDialog('User record not found.');
-      return;
-    }
-    final role = userData['role'];
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-    if (role == 'Student' || role == 'Teacher') {
-      if (userData['approved'] == true) {
+    try {
+      // Hardcoded admin credentials
+      if (email == "admin@malabarcollege.com" && password == "admin123") {
+        Navigator.pop(context); // Remove loading
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => StudentHomeScreen()),
+          MaterialPageRoute(builder: (context) => AdminHomeScreen()),
         );
-      } else {
-        _showErrorDialog('Your account is not approved by admin.');
+        return;
       }
-    } else if (role == 'Parent') {
-      // Check if parent email exists in any student document
-      final parentEmail = email;
-      final students = await FirebaseFirestore.instance
-          .collection('students')
-          .where('parentEmail', isEqualTo: parentEmail)
+
+      // Firebase login
+      final error = await _authService.login(email: email, password: password);
+      if (error != null) {
+        Navigator.pop(context); // Remove loading
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+        return;
+      }
+
+      // Get user role from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
           .get();
-      if (students.docs.isNotEmpty) {
-        Navigator.pushReplacement(
+      final userData = userDoc.data();
+      if (userData == null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => StudentHomeScreen()),
-        );
-      } else {
-        _showErrorDialog('Parent email not found in student records.');
+        ).showSnackBar(const SnackBar(content: Text('User record not found.')));
+        return;
       }
-    } else {
-      _showErrorDialog('Invalid role.');
+      final role = userData['role'];
+
+      if (role == 'Student' || role == 'Teacher') {
+        if (userData['approved'] == true) {
+          Navigator.pop(context);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => StudentHomeScreen()),
+          );
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Your account is not approved by admin.'),
+            ),
+          );
+        }
+      } else if (role == 'Parent') {
+        final parentEmail = email;
+        final students = await FirebaseFirestore.instance
+            .collection('students')
+            .where('parentEmail', isEqualTo: parentEmail)
+            .get();
+        if (students.docs.isNotEmpty) {
+          Navigator.pop(context);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => StudentHomeScreen()),
+          );
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Parent email not found in student records.'),
+            ),
+          );
+        }
+      } else {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Invalid role.')));
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
     }
   }
 
