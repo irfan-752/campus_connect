@@ -1,11 +1,21 @@
 import 'package:campus_connect/manage_users.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'screens/admin/admin_main_screen.dart';
 
 import 'login.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const AdminMainScreen();
+  }
+}
+
+class OldAdminHomeScreen extends StatelessWidget {
+  const OldAdminHomeScreen({super.key});
 
   void _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();

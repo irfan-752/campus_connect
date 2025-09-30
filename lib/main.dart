@@ -1,13 +1,13 @@
 import 'package:campus_connect/firebase_options.dart';
-import 'package:campus_connect/login.dart';
-import 'package:campus_connect/splash.dart';
+import 'package:campus_connect/utils/app_theme.dart';
+import 'package:campus_connect/utils/route_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -16,6 +16,12 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home:CampusSplashScreen());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Campus Connect',
+      theme: AppTheme.lightTheme,
+      initialRoute: RouteHelper.splash,
+      onGenerateRoute: RouteHelper.generateRoute,
+    );
   }
 }

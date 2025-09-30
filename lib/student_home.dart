@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'screens/student/student_main_screen.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const StudentMainScreen();
+  }
+}
+
+class OldStudentHomeScreen extends StatelessWidget {
+  const OldStudentHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
