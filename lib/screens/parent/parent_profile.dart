@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../services/cloudinary_service.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
@@ -565,6 +566,17 @@ class _ParentProfileState extends State<ParentProfile> {
               'name': _nameController.text,
               'updatedAt': DateTime.now().millisecondsSinceEpoch,
             });
+
+        if (_selectedImage != null) {
+          final url = await CloudinaryService.uploadImageFile(_selectedImage!);
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+                'avatarUrl': url,
+                'updatedAt': DateTime.now().millisecondsSinceEpoch,
+              }, SetOptions(merge: true));
+        }
 
         setState(() {
           _isEditing = false;

@@ -5,6 +5,7 @@ import '../admin_home.dart';
 import '../login.dart';
 import '../register.dart';
 import '../splash.dart';
+import '../screens/mentor/mentor_main_screen.dart';
 
 class RouteHelper {
   // Route names
@@ -14,6 +15,7 @@ class RouteHelper {
   static const String studentHome = '/student-home';
   static const String parentHome = '/parent-home';
   static const String adminHome = '/admin-home';
+  static const String mentorHome = '/mentor-home';
 
   // Generate routes
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -30,6 +32,8 @@ class RouteHelper {
         return MaterialPageRoute(builder: (_) => const ParentHomeScreen());
       case adminHome:
         return MaterialPageRoute(builder: (_) => const AdminHomeScreen());
+      case mentorHome:
+        return MaterialPageRoute(builder: (_) => const MentorHomeScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
@@ -52,8 +56,11 @@ class RouteHelper {
     String routeName;
     switch (role.toLowerCase()) {
       case 'student':
-      case 'teacher':
         routeName = studentHome;
+        break;
+      case 'teacher':
+      case 'mentor':
+        routeName = mentorHome;
         break;
       case 'parent':
         routeName = parentHome;

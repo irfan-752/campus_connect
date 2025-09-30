@@ -4,12 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../services/cloudinary_service.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
-import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
-import '../../widgets/empty_state_widget.dart';
 import '../../models/student_model.dart';
 import '../../login.dart';
 
@@ -30,6 +29,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   final _parentEmailController = TextEditingController();
 
   bool _isEditing = false;
+  // Loading flag reserved for future async UI
+  // ignore: unused_field
   bool _isLoading = false;
   File? _selectedImage;
 
@@ -86,11 +87,27 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const EmptyStateWidget(
-              title: "Profile not found",
-              subtitle: "Please contact administrator",
-              icon: Icons.person,
-            );
+            if (user != null) {
+              final now = DateTime.now().millisecondsSinceEpoch;
+              FirebaseFirestore.instance.collection('students').doc(user.uid).set({
+                'userId': user.uid,
+                'name': user.displayName ?? 'Student',
+                'email': user.email ?? '',
+                'rollNumber': '',
+                'department': '',
+                'semester': '',
+                'avatarUrl': null,
+                'attendance': 0.0,
+                'gpa': 0.0,
+                'eventsParticipated': 0,
+                'courses': <String>[],
+                'mentorId': null,
+                'parentEmail': null,
+                'createdAt': now,
+                'updatedAt': now,
+              }, SetOptions(merge: true));
+            }
+            return const LoadingWidget(message: "Preparing your profile...");
           }
 
           final studentData = snapshot.data!.data() as Map<String, dynamic>;
@@ -633,7 +650,21 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             'updatedAt': DateTime.now().millisecondsSinceEpoch,
           });
 
-      // TODO: Upload image if selected
+      // Upload image if selected
+      if (_selectedImage != null) {
+        final url = await CloudinaryService.uploadImageFile(_selectedImage!);
+        await FirebaseFirestore.instance
+            .collection('students')
+            .doc(user.uid)
+            .update({
+              'avatarUrl': url,
+              'updatedAt': DateTime.now().millisecondsSinceEpoch,
+            });
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'avatarUrl': url,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        }, SetOptions(merge: true));
+      }
 
       setState(() {
         _isEditing = false;

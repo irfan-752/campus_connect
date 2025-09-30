@@ -31,13 +31,32 @@ class StudentDashboard extends StatelessWidget {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const LoadingWidget(message: "Loading dashboard...");
             }
-
             if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const EmptyStateWidget(
-                title: "Profile not found",
-                subtitle: "Please contact administrator",
-                icon: Icons.error_outline,
-              );
+              // Auto-create a minimal student profile document and show loading
+              if (user != null) {
+                final now = DateTime.now().millisecondsSinceEpoch;
+                FirebaseFirestore.instance
+                    .collection('students')
+                    .doc(user.uid)
+                    .set({
+                      'userId': user.uid,
+                      'name': user.displayName ?? 'Student',
+                      'email': user.email ?? '',
+                      'rollNumber': '',
+                      'department': '',
+                      'semester': '',
+                      'avatarUrl': null,
+                      'attendance': 0.0,
+                      'gpa': 0.0,
+                      'eventsParticipated': 0,
+                      'courses': <String>[],
+                      'mentorId': null,
+                      'parentEmail': null,
+                      'createdAt': now,
+                      'updatedAt': now,
+                    }, SetOptions(merge: true));
+              }
+              return const LoadingWidget(message: "Preparing your profile...");
             }
 
             final studentData = snapshot.data!.data() as Map<String, dynamic>;

@@ -17,11 +17,51 @@ class AuthService {
         email: email,
         password: password,
       );
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      final uid = userCredential.user!.uid;
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      await _firestore.collection('users').doc(uid).set({
         'name': name,
         'email': email,
         'role': role,
-      });
+        'approved': role == 'Admin' ? true : false,
+        'avatarUrl': null,
+        'createdAt': now,
+        'updatedAt': now,
+      }, SetOptions(merge: true));
+
+      // Create role specific skeleton document if needed
+      if (role == 'Student') {
+        await _firestore.collection('students').doc(uid).set({
+          'name': name,
+          'email': email,
+          'avatarUrl': null,
+          'attendance': 0.0,
+          'gpa': 0.0,
+          'eventsParticipated': 0,
+          'courses': <String>[],
+          'department': '',
+          'semester': '',
+          'parentEmail': null,
+          'createdAt': now,
+          'updatedAt': now,
+        }, SetOptions(merge: true));
+      } else if (role == 'Teacher' || role == 'Mentor') {
+        await _firestore.collection('mentors').doc(uid).set({
+          'userId': uid,
+          'name': name,
+          'email': email,
+          'department': '',
+          'designation': 'Mentor',
+          'avatarUrl': null,
+          'studentIds': <String>[],
+          'specialization': '',
+          'experience': '',
+          'isAvailable': true,
+          'createdAt': now,
+          'updatedAt': now,
+        }, SetOptions(merge: true));
+      }
       return null; // success
     } on FirebaseAuthException catch (e) {
       return e.message;
