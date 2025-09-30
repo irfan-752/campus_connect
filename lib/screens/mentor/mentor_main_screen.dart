@@ -9,6 +9,7 @@ import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 import '../../models/notice_model.dart';
 import '../../models/mentor_model.dart';
+import 'mentor_student_attendance.dart';
 import '../../services/cloudinary_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -645,6 +646,24 @@ class _MentorStudentsTab extends StatelessWidget {
                     color: AppTheme.secondaryTextColor,
                   ),
                 ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppTheme.lightTextColor,
+                ),
+                onTap: () {
+                  final id = snapshot.data!.docs[index].id;
+                  final name = data['name'] ?? 'Student';
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MentorStudentAttendanceScreen(
+                        studentId: id,
+                        studentName: name,
+                      ),
+                    ),
+                  );
+                },
               ),
             );
           },

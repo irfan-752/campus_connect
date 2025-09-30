@@ -648,7 +648,11 @@ class _AdminUserManagementState extends State<AdminUserManagement>
   }
 
   void _showAddUserDialog() {
-    // Implementation for adding new user
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final roleController = ValueNotifier<String>('Student');
+    final approvedController = ValueNotifier<bool>(false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -656,32 +660,47 @@ class _AdminUserManagementState extends State<AdminUserManagement>
           'Add New User',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        content: Text(
-          'This feature will allow admins to manually add users to the system.',
-          style: GoogleFonts.poppins(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(hintText: 'Full Name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(hintText: 'Email'),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<String>(
+                valueListenable: roleController,
+                builder: (context, value, _) => DropdownButtonFormField<String>(
+                  value: value,
+                  items: const [
+                    DropdownMenuItem(value: 'Student', child: Text('Student')),
+                    DropdownMenuItem(value: 'Teacher', child: Text('Teacher')),
+                    DropdownMenuItem(value: 'Parent', child: Text('Parent')),
+                    DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+                  ],
+                  onChanged: (v) => roleController.value = v ?? 'Student',
+                  decoration: const InputDecoration(labelText: 'Role'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<bool>(
+                valueListenable: approvedController,
+                builder: (context, approved, _) => CheckboxListTile(
+                  value: approved,
+                  onChanged: (v) => approvedController.value = v ?? false,
+                  title: const Text('Approved'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditUserDialog(UserModel user) {
-    // Implementation for editing user
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Edit User',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          'Edit details for ${user.name}',
-          style: GoogleFonts.poppins(),
         ),
         actions: [
           TextButton(
@@ -689,10 +708,108 @@ class _AdminUserManagementState extends State<AdminUserManagement>
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Save changes
-              Navigator.pop(context);
+            onPressed: () async {
+              final now = DateTime.now().millisecondsSinceEpoch;
+              await FirebaseFirestore.instance.collection('users').add({
+                'name': nameController.text.trim(),
+                'email': emailController.text.trim(),
+                'role': roleController.value,
+                'approved': approvedController.value,
+                'avatarUrl': null,
+                'createdAt': now,
+                'updatedAt': now,
+              });
+              if (mounted) Navigator.pop(context);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditUserDialog(UserModel user) {
+    final nameController = TextEditingController(text: user.name);
+    final emailController = TextEditingController(text: user.email);
+    final roleController = ValueNotifier<String>(user.role);
+    final approvedController = ValueNotifier<bool>(user.approved);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Edit User',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(hintText: 'Full Name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(hintText: 'Email'),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<String>(
+                valueListenable: roleController,
+                builder: (context, value, _) => DropdownButtonFormField<String>(
+                  value: value,
+                  items: const [
+                    DropdownMenuItem(value: 'Student', child: Text('Student')),
+                    DropdownMenuItem(value: 'Teacher', child: Text('Teacher')),
+                    DropdownMenuItem(value: 'Parent', child: Text('Parent')),
+                    DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+                  ],
+                  onChanged: (v) => roleController.value = v ?? user.role,
+                  decoration: const InputDecoration(labelText: 'Role'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<bool>(
+                valueListenable: approvedController,
+                builder: (context, approved, _) => CheckboxListTile(
+                  value: approved,
+                  onChanged: (v) => approvedController.value = v ?? false,
+                  title: const Text('Approved'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.id)
+                  .update({
+                    'name': nameController.text.trim(),
+                    'email': emailController.text.trim(),
+                    'role': roleController.value,
+                    'approved': approvedController.value,
+                    'updatedAt': DateTime.now().millisecondsSinceEpoch,
+                  });
+              if (mounted) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Save'),
           ),
         ],

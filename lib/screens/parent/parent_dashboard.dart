@@ -36,6 +36,10 @@ class ParentDashboard extends StatelessWidget {
               const SizedBox(height: AppTheme.spacingL),
               _buildUpcomingEvents(),
               const SizedBox(height: AppTheme.spacingL),
+              _buildChildEventParticipation(user?.uid ?? ''),
+              const SizedBox(height: AppTheme.spacingL),
+              _buildMentorInteractions(user?.uid ?? ''),
+              const SizedBox(height: AppTheme.spacingL),
               _buildAttendanceAlert(),
               // Add bottom padding to prevent overflow
               SizedBox(
@@ -575,6 +579,173 @@ class ParentDashboard extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildChildEventParticipation(String parentId) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('students')
+          .where('parentId', isEqualTo: parentId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget(message: "Loading participation...");
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final childIds = snapshot.data!.docs.map((d) => d.id).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Event Participation",
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('events')
+                  .where('registeredStudents', arrayContainsAny: childIds)
+                  .orderBy('startDate', descending: true)
+                  .limit(5)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const LoadingWidget();
+                }
+                if (!snap.hasData || snap.data!.docs.isEmpty) {
+                  return const EmptyStateWidget(
+                    title: "No participation yet",
+                    subtitle:
+                        "Your child’s event participation will appear here",
+                    icon: Icons.event_available,
+                  );
+                }
+                return Column(
+                  children: snap.data!.docs.map((d) {
+                    final event = EventModel.fromMap(
+                      d.data() as Map<String, dynamic>,
+                      d.id,
+                    );
+                    return _buildEventItem(event);
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMentorInteractions(String parentId) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('students')
+          .where('parentId', isEqualTo: parentId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget(message: "Loading mentor interactions...");
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final childIds = snapshot.data!.docs.map((d) => d.id).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Mentor Interactions",
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('mentor_sessions')
+                  .where(
+                    'studentId',
+                    whereIn: childIds.length > 10
+                        ? childIds.sublist(0, 10)
+                        : childIds,
+                  )
+                  .orderBy('scheduledDate', descending: true)
+                  .limit(5)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const LoadingWidget();
+                }
+                if (!snap.hasData || snap.data!.docs.isEmpty) {
+                  return const EmptyStateWidget(
+                    title: "No interactions yet",
+                    subtitle: "Mentoring sessions will appear here",
+                    icon: Icons.forum,
+                  );
+                }
+                return Column(
+                  children: snap.data!.docs.map((d) {
+                    final data = d.data() as Map<String, dynamic>;
+                    return CustomCard(
+                      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.event_note,
+                          color: AppTheme.primaryColor,
+                        ),
+                        title: Text(
+                          data['title'] ?? 'Mentor Session',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          DateFormat('MMM dd, yyyy • hh:mm a').format(
+                            DateTime.fromMillisecondsSinceEpoch(
+                              (data['scheduledDate'] ?? 0) as int,
+                            ),
+                          ),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                        trailing: Text(
+                          data['status'] ?? 'Scheduled',
+                          style: GoogleFonts.poppins(fontSize: 12),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -127,6 +127,8 @@ class StudentDashboard extends StatelessWidget {
                   fontSize: 14,
                   color: AppTheme.secondaryTextColor,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 student.name,
@@ -135,6 +137,8 @@ class StudentDashboard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primaryTextColor,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 "${student.department} • ${student.semester}",
@@ -142,6 +146,8 @@ class StudentDashboard extends StatelessWidget {
                   fontSize: 12,
                   color: AppTheme.secondaryTextColor,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -202,15 +208,21 @@ class StudentDashboard extends StatelessWidget {
       );
     }
 
-    return Row(
-      children: stats
-          .expand(
-            (stat) => [
-              Expanded(child: stat),
-              if (stat != stats.last) const SizedBox(width: AppTheme.spacingS),
-            ],
-          )
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 3 * AppTheme.spacingS) / 4;
+        return Row(
+          children: stats
+              .expand(
+                (stat) => [
+                  SizedBox(width: itemWidth, child: stat),
+                  if (stat != stats.last)
+                    const SizedBox(width: AppTheme.spacingS),
+                ],
+              )
+              .toList(),
+        );
+      },
     );
   }
 
@@ -253,20 +265,23 @@ class StudentDashboard extends StatelessWidget {
             return Column(
               children: snapshot.data!.docs.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
-                return InfoCard(
-                  title: data['subject'] ?? 'Subject',
-                  subtitle:
-                      "${data['startTime']} - ${data['endTime']} • ${data['room']}",
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.schedule,
-                      color: AppTheme.primaryColor,
-                      size: 20,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                  child: InfoCard(
+                    title: data['subject'] ?? 'Subject',
+                    subtitle:
+                        "${data['startTime']} - ${data['endTime']} • ${data['room']}",
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.schedule,
+                        color: AppTheme.primaryColor,
+                        size: 20,
+                      ),
                     ),
                   ),
                 );

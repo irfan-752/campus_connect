@@ -9,8 +9,6 @@ import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
-import '../../widgets/responsive_wrapper.dart';
-import '../../utils/responsive_helper.dart';
 import '../../models/event_model.dart';
 
 class StudentEventsScreen extends StatefulWidget {
@@ -532,29 +530,113 @@ class _StudentEventsScreenState extends State<StudentEventsScreen>
   void _showFeedbackDialog(EventModel event) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Event Feedback',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          'Would you like to provide feedback for "${event.title}"?',
-          style: GoogleFonts.poppins(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Later'),
+      builder: (context) => _FeedbackDialog(event: event),
+    );
+  }
+}
+
+class _FeedbackDialog extends StatefulWidget {
+  final EventModel event;
+  const _FeedbackDialog({required this.event});
+
+  @override
+  State<_FeedbackDialog> createState() => _FeedbackDialogState();
+}
+
+class _FeedbackDialogState extends State<_FeedbackDialog> {
+  final _controller = TextEditingController();
+  double _rating = 4.0;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        'Event Feedback',
+        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'How was "${widget.event.title}"?',
+            style: GoogleFonts.poppins(),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to feedback form
-            },
-            child: const Text('Give Feedback'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  value: _rating,
+                  min: 1,
+                  max: 5,
+                  divisions: 8,
+                  label: _rating.toStringAsFixed(1),
+                  onChanged: (v) => setState(() => _rating = v),
+                ),
+              ),
+              Text(
+                _rating.toStringAsFixed(1),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          TextField(
+            controller: _controller,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'Share your feedback...',
+            ),
           ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submitting ? null : _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+          ),
+          child: _submitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Submit'),
+        ),
+      ],
     );
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      await FirebaseFirestore.instance.collection('event_feedback').add({
+        'eventId': widget.event.id,
+        'eventTitle': widget.event.title,
+        'studentId': user.uid,
+        'rating': _rating,
+        'feedback': _controller.text.trim(),
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      setState(() => _submitting = false);
+    }
   }
 }

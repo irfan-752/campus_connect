@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
@@ -9,6 +10,7 @@ import 'admin_user_management.dart';
 import 'admin_event_management.dart';
 import 'admin_notice_management.dart';
 import 'admin_analytics.dart';
+import 'admin_attendance_reporting.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -25,6 +27,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const AdminUserManagement(),
     const AdminEventManagement(),
     const AdminNoticeManagement(),
+    const AdminAttendanceReporting(),
     const AdminAnalytics(),
   ];
 
@@ -37,6 +40,10 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
     const BottomNavigationBarItem(icon: Icon(Icons.campaign), label: 'Notices'),
     const BottomNavigationBarItem(
+      icon: Icon(Icons.fact_check),
+      label: 'Attendance',
+    ),
+    const BottomNavigationBarItem(
       icon: Icon(Icons.analytics),
       label: 'Analytics',
     ),
@@ -47,6 +54,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     'User Management',
     'Event Management',
     'Notice Management',
+    'Attendance Reporting',
     'Analytics & Reports',
   ];
 
@@ -56,6 +64,11 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
       appBar: CustomAppBar(
         title: _screenTitles[_currentIndex],
         actions: [
+          IconButton(
+            icon: const Icon(Icons.backup),
+            tooltip: 'Backup Data',
+            onPressed: _showBackupDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -127,5 +140,117 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         ],
       ),
     );
+  }
+
+  void _showBackupDialog() {
+    final Map<String, bool> collections = {
+      'users': true,
+      'students': true,
+      'events': true,
+      'notices': true,
+      'attendance': true,
+      'mentor_sessions': true,
+    };
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool isBackingUp = false;
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: Text(
+              'Backup Collections',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...collections.entries.map(
+                  (e) => CheckboxListTile(
+                    value: e.value,
+                    onChanged: (v) =>
+                        setState(() => collections[e.key] = v ?? false),
+                    title: Text(e.key),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Backups will be saved under backups/{timestamp}/{collection}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isBackingUp ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isBackingUp
+                    ? null
+                    : () async {
+                        setState(() => isBackingUp = true);
+                        try {
+                          await _runBackup(collections);
+                          if (mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Backup completed successfully'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setState(() => isBackingUp = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Backup failed: $e')),
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: isBackingUp
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Start Backup'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _runBackup(Map<String, bool> selected) async {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    for (final entry in selected.entries) {
+      if (!entry.value) continue;
+      final col = entry.key;
+      final snapshot = await FirebaseFirestore.instance.collection(col).get();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        await FirebaseFirestore.instance
+            .collection('backups')
+            .doc(ts.toString())
+            .collection(col)
+            .doc(doc.id)
+            .set(data);
+      }
+    }
   }
 }

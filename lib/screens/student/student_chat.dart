@@ -20,6 +20,8 @@ class StudentChatScreen extends StatefulWidget {
 class _StudentChatScreenState extends State<StudentChatScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _groupNameController = TextEditingController();
+  final TextEditingController _groupDescController = TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +32,8 @@ class _StudentChatScreenState extends State<StudentChatScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _groupNameController.dispose();
+    _groupDescController.dispose();
     super.dispose();
   }
 
@@ -57,6 +61,125 @@ class _StudentChatScreenState extends State<StudentChatScreen>
         onPressed: _showCreateChatOptions,
         backgroundColor: AppTheme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  void _showCreateGroupDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Create Study Group',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _groupNameController,
+                decoration: const InputDecoration(hintText: 'Group name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _groupDescController,
+                decoration: const InputDecoration(
+                  hintText: 'Description (optional)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: _createGroup,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createGroup() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final now = DateTime.now();
+    final room = ChatRoom(
+      id: '',
+      name: _groupNameController.text.trim(),
+      description: _groupDescController.text.trim(),
+      type: 'Group',
+      participants: [user.uid],
+      avatarUrl: null,
+      createdBy: user.uid,
+      createdAt: now,
+      lastMessageAt: now,
+      lastMessage: null,
+      isActive: true,
+    );
+    await FirebaseFirestore.instance.collection('chat_rooms').add(room.toMap());
+    Navigator.pop(context);
+  }
+
+  void _showStartMentorChatDialog() {
+    final idController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Start Mentor Chat',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: TextField(
+          controller: idController,
+          decoration: const InputDecoration(
+            hintText: 'Enter mentor (teacher) user ID',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser!;
+              final mentorId = idController.text.trim();
+              if (mentorId.isEmpty) return;
+              final now = DateTime.now();
+              final room = ChatRoom(
+                id: '',
+                name: 'Mentor Chat',
+                description: 'Direct',
+                type: 'Direct',
+                participants: [user.uid, mentorId],
+                avatarUrl: null,
+                createdBy: user.uid,
+                createdAt: now,
+                lastMessageAt: now,
+                lastMessage: null,
+                isActive: true,
+              );
+              await FirebaseFirestore.instance
+                  .collection('chat_rooms')
+                  .add(room.toMap());
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Start'),
+          ),
+        ],
       ),
     );
   }
@@ -414,6 +537,16 @@ class _StudentChatScreenState extends State<StudentChatScreen>
               },
             ),
             _buildChatOption(
+              "Start Mentor Chat",
+              "Enter mentor ID to start direct chat",
+              Icons.person,
+              AppTheme.primaryColor,
+              () {
+                Navigator.pop(context);
+                _showStartMentorChatDialog();
+              },
+            ),
+            _buildChatOption(
               "Join Class Group",
               "Join your class discussion group",
               Icons.school,
@@ -430,7 +563,7 @@ class _StudentChatScreenState extends State<StudentChatScreen>
               AppTheme.successColor,
               () {
                 Navigator.pop(context);
-                // Navigate to create group
+                _showCreateGroupDialog();
               },
             ),
             const SizedBox(height: AppTheme.spacingL),
