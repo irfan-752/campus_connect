@@ -278,14 +278,13 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     try {
-      // Hardcoded admin credentials
+     
       if (email == "admin@malabarcollege.com" && password == "admin123") {
         Navigator.pop(context); // Remove loading
         RouteHelper.navigateToHome(context, 'Admin');
         return;
       }
 
-      // Firebase login
       final error = await _authService.login(email: email, password: password);
       if (error != null) {
         Navigator.pop(context); // Remove loading
