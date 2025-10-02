@@ -858,25 +858,7 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
   }
 
   void _showCreateNoticeDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Create New Notice',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          'This will open a form to create a new notice with all necessary details.',
-          style: GoogleFonts.poppins(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (context) => _CreateNoticeDialog());
   }
 
   void _showEditNoticeDialog(NoticeModel notice) {
@@ -1131,5 +1113,476 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
         ],
       ),
     );
+  }
+}
+
+class _CreateNoticeDialog extends StatefulWidget {
+  @override
+  _CreateNoticeDialogState createState() => _CreateNoticeDialogState();
+}
+
+class _CreateNoticeDialogState extends State<_CreateNoticeDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  String _selectedPriority = 'Medium';
+  String _selectedCategory = 'General';
+  List<String> _selectedTargetAudience = ['All'];
+  bool _isActive = true;
+  bool _isLoading = false;
+
+  final List<String> _priorities = ['High', 'Medium', 'Low'];
+  final List<String> _categories = [
+    'Academic',
+    'Administrative',
+    'Event',
+    'Examination',
+    'Holiday',
+    'General',
+  ];
+  final List<String> _targetAudiences = ['All', 'Student', 'Teacher', 'Parent'];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.campaign, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Create New Notice',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTextField(
+                        controller: _titleController,
+                        label: 'Notice Title',
+                        hint: 'Enter notice title',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter notice title';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _descriptionController,
+                        label: 'Description',
+                        hint: 'Enter notice description',
+                        maxLines: 4,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter notice description';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPriorityDropdown(),
+                      const SizedBox(height: 16),
+                      _buildCategoryDropdown(),
+                      const SizedBox(height: 16),
+                      _buildTargetAudienceSelector(),
+                      const SizedBox(height: 16),
+                      _buildActiveToggle(),
+                      const SizedBox(height: 24),
+                      _buildActionButtons(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          validator: validator,
+          style: GoogleFonts.poppins(),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.poppins(color: AppTheme.secondaryTextColor),
+            filled: true,
+            fillColor: AppTheme.surfaceColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriorityDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Priority',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedPriority,
+              isExpanded: true,
+              style: GoogleFonts.poppins(color: AppTheme.primaryTextColor),
+              items: _priorities.map((priority) {
+                return DropdownMenuItem(
+                  value: priority,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getPriorityIcon(priority),
+                        size: 16,
+                        color: _getPriorityColor(priority),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(priority),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedPriority = value!;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Category',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedCategory,
+              isExpanded: true,
+              style: GoogleFonts.poppins(color: AppTheme.primaryTextColor),
+              items: _categories.map((category) {
+                return DropdownMenuItem(value: category, child: Text(category));
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value!;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTargetAudienceSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Target Audience',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _targetAudiences.map((audience) {
+            final isSelected = _selectedTargetAudience.contains(audience);
+            return FilterChip(
+              label: Text(
+                audience,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: isSelected ? Colors.white : AppTheme.primaryColor,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    if (audience == 'All') {
+                      _selectedTargetAudience = ['All'];
+                    } else {
+                      _selectedTargetAudience.remove('All');
+                      _selectedTargetAudience.add(audience);
+                    }
+                  } else {
+                    _selectedTargetAudience.remove(audience);
+                    if (_selectedTargetAudience.isEmpty) {
+                      _selectedTargetAudience = ['All'];
+                    }
+                  }
+                });
+              },
+              backgroundColor: Colors.white,
+              selectedColor: AppTheme.primaryColor,
+              checkmarkColor: Colors.white,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveToggle() {
+    return Row(
+      children: [
+        Text(
+          'Active Notice',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const Spacer(),
+        Switch(
+          value: _isActive,
+          onChanged: (value) {
+            setState(() {
+              _isActive = value;
+            });
+          },
+          activeColor: AppTheme.primaryColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _createNotice,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    'Create Notice',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'High':
+        return AppTheme.errorColor;
+      case 'Medium':
+        return AppTheme.warningColor;
+      case 'Low':
+        return AppTheme.successColor;
+      default:
+        return AppTheme.secondaryTextColor;
+    }
+  }
+
+  IconData _getPriorityIcon(String priority) {
+    switch (priority) {
+      case 'High':
+        return Icons.priority_high;
+      case 'Medium':
+        return Icons.remove;
+      case 'Low':
+        return Icons.keyboard_arrow_down;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Future<void> _createNotice() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final notice = NoticeModel(
+        id: '',
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName ?? 'Admin',
+        priority: _selectedPriority,
+        category: _selectedCategory,
+        targetAudience: _selectedTargetAudience,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isActive: _isActive,
+        readBy: [],
+      );
+
+      await FirebaseFirestore.instance
+          .collection('notices')
+          .add(notice.toMap());
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Notice created successfully'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create notice: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }

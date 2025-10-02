@@ -27,6 +27,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   final _departmentController = TextEditingController();
   final _semesterController = TextEditingController();
   final _parentEmailController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _emergencyContactController = TextEditingController();
+  final _bloodGroupController = TextEditingController();
 
   bool _isEditing = false;
   // Loading flag reserved for future async UI
@@ -42,6 +46,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     _departmentController.dispose();
     _semesterController.dispose();
     _parentEmailController.dispose();
+    _phoneNumberController.dispose();
+    _addressController.dispose();
+    _emergencyContactController.dispose();
+    _bloodGroupController.dispose();
     super.dispose();
   }
 
@@ -89,23 +97,26 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           if (!snapshot.hasData || !snapshot.data!.exists) {
             if (user != null) {
               final now = DateTime.now().millisecondsSinceEpoch;
-              FirebaseFirestore.instance.collection('students').doc(user.uid).set({
-                'userId': user.uid,
-                'name': user.displayName ?? 'Student',
-                'email': user.email ?? '',
-                'rollNumber': '',
-                'department': '',
-                'semester': '',
-                'avatarUrl': null,
-                'attendance': 0.0,
-                'gpa': 0.0,
-                'eventsParticipated': 0,
-                'courses': <String>[],
-                'mentorId': null,
-                'parentEmail': null,
-                'createdAt': now,
-                'updatedAt': now,
-              }, SetOptions(merge: true));
+              FirebaseFirestore.instance
+                  .collection('students')
+                  .doc(user.uid)
+                  .set({
+                    'userId': user.uid,
+                    'name': user.displayName ?? 'Student',
+                    'email': user.email ?? '',
+                    'rollNumber': '',
+                    'department': '',
+                    'semester': '',
+                    'avatarUrl': null,
+                    'attendance': 0.0,
+                    'gpa': 0.0,
+                    'eventsParticipated': 0,
+                    'courses': <String>[],
+                    'mentorId': null,
+                    'parentEmail': null,
+                    'createdAt': now,
+                    'updatedAt': now,
+                  }, SetOptions(merge: true));
             }
             return const LoadingWidget(message: "Preparing your profile...");
           }
@@ -265,6 +276,37 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             "Parent Email",
             _parentEmailController,
             Icons.family_restroom,
+            enabled: _isEditing,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          _buildInfoField(
+            "Phone Number",
+            _phoneNumberController,
+            Icons.phone,
+            enabled: _isEditing,
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          _buildInfoField(
+            "Address",
+            _addressController,
+            Icons.location_on,
+            enabled: _isEditing,
+            maxLines: 2,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          _buildInfoField(
+            "Emergency Contact",
+            _emergencyContactController,
+            Icons.emergency,
+            enabled: _isEditing,
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          _buildInfoField(
+            "Blood Group",
+            _bloodGroupController,
+            Icons.bloodtype,
             enabled: _isEditing,
           ),
         ],
@@ -464,9 +506,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             "Update your account password",
             Icons.lock,
             AppTheme.primaryColor,
-            () {
-              // Navigate to change password
-            },
+            _showChangePasswordDialog,
           ),
           _buildActionItem(
             "Privacy Settings",
@@ -559,6 +599,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     TextEditingController controller,
     IconData icon, {
     bool enabled = true,
+    TextInputType? keyboardType,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,6 +617,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         TextFormField(
           controller: controller,
           enabled: enabled,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
           style: GoogleFonts.poppins(
             color: enabled
                 ? AppTheme.primaryTextColor
@@ -613,6 +657,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       _departmentController.text = student.department;
       _semesterController.text = student.semester;
       _parentEmailController.text = student.parentEmail ?? '';
+      _phoneNumberController.text = student.phoneNumber ?? '';
+      _addressController.text = student.address ?? '';
+      _emergencyContactController.text = student.emergencyContact ?? '';
+      _bloodGroupController.text = student.bloodGroup ?? '';
     }
   }
 
@@ -647,6 +695,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             'department': _departmentController.text.trim(),
             'semester': _semesterController.text.trim(),
             'parentEmail': _parentEmailController.text.trim(),
+            'phoneNumber': _phoneNumberController.text.trim(),
+            'address': _addressController.text.trim(),
+            'emergencyContact': _emergencyContactController.text.trim(),
+            'bloodGroup': _bloodGroupController.text.trim(),
             'updatedAt': DateTime.now().millisecondsSinceEpoch,
           });
 
@@ -727,6 +779,111 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               backgroundColor: AppTheme.errorColor,
             ),
             child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Change Password',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Current Password',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'New Password',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Confirm New Password',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('New passwords do not match'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+                return;
+              }
+
+              if (newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Password must be at least 6 characters'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await user.updatePassword(newPasswordController.text);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Password updated successfully'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to update password: $e'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            child: const Text('Update Password'),
           ),
         ],
       ),

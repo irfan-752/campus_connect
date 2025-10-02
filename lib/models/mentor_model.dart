@@ -9,6 +9,7 @@ class MentorModel {
   final List<String> studentIds;
   final String specialization;
   final String experience;
+  final String qualification;
   final bool isAvailable;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -24,6 +25,7 @@ class MentorModel {
     this.studentIds = const [],
     this.specialization = '',
     this.experience = '',
+    this.qualification = '',
     this.isAvailable = true,
     required this.createdAt,
     required this.updatedAt,
@@ -41,6 +43,7 @@ class MentorModel {
       studentIds: List<String>.from(map['studentIds'] ?? []),
       specialization: map['specialization'] ?? '',
       experience: map['experience'] ?? '',
+      qualification: map['qualification'] ?? '',
       isAvailable: map['isAvailable'] ?? true,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
@@ -58,6 +61,7 @@ class MentorModel {
       'studentIds': studentIds,
       'specialization': specialization,
       'experience': experience,
+      'qualification': qualification,
       'isAvailable': isAvailable,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,

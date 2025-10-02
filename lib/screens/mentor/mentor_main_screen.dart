@@ -10,6 +10,7 @@ import '../../widgets/empty_state_widget.dart';
 import '../../models/notice_model.dart';
 import '../../models/mentor_model.dart';
 import 'mentor_student_attendance.dart';
+import 'mentor_attendance_marking.dart';
 import '../../services/cloudinary_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -28,13 +29,55 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _logout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfileDialog(BuildContext context) {
+    showDialog(context: context, builder: (context) => _MentorProfileDialog());
   }
 
   @override
@@ -49,6 +92,18 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => _showProfileDialog(context),
+            tooltip: 'Profile',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => _logout(context),
+            tooltip: 'Logout',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryColor,
@@ -58,6 +113,7 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
             Tab(text: 'Notices'),
             Tab(text: 'Sessions'),
             Tab(text: 'Students'),
+            Tab(text: 'Attendance'),
           ],
         ),
       ),
@@ -69,6 +125,7 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
             _MentorNoticesTab(),
             _MentorSessionsTab(),
             _MentorStudentsTab(),
+            _MentorAttendanceTab(),
           ],
         ),
       ),
@@ -710,5 +767,632 @@ class _NoticeItem extends StatelessWidget {
       default:
         return AppTheme.warningColor;
     }
+  }
+}
+
+class _MentorProfileDialog extends StatefulWidget {
+  @override
+  _MentorProfileDialogState createState() => _MentorProfileDialogState();
+}
+
+class _MentorProfileDialogState extends State<_MentorProfileDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _departmentController = TextEditingController();
+  final _designationController = TextEditingController();
+  final _specializationController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _qualificationController = TextEditingController();
+
+  String? _avatarUrl;
+  bool _isAvailable = true;
+  bool _isLoading = false;
+  bool _isEditing = false;
+  File? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _departmentController.dispose();
+    _designationController.dispose();
+    _specializationController.dispose();
+    _experienceController.dispose();
+    _qualificationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProfileData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (doc.docs.isNotEmpty) {
+        final data = doc.docs.first.data();
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+          _emailController.text = data['email'] ?? '';
+          _departmentController.text = data['department'] ?? '';
+          _designationController.text = data['designation'] ?? '';
+          _specializationController.text = data['specialization'] ?? '';
+          _experienceController.text = data['experience'] ?? '';
+          _qualificationController.text = data['qualification'] ?? '';
+          _avatarUrl = data['avatarUrl'];
+          _isAvailable = data['isAvailable'] ?? true;
+        });
+      }
+    } catch (e) {
+      print('Error loading profile: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Mentor Profile',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProfileImage(),
+                      const SizedBox(height: 20),
+                      _buildTextField(
+                        controller: _nameController,
+                        label: 'Full Name',
+                        hint: 'Enter your full name',
+                        enabled: _isEditing,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _emailController,
+                        label: 'Email',
+                        hint: 'Enter your email',
+                        enabled: false, // Email cannot be changed
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _departmentController,
+                        label: 'Department',
+                        hint: 'Enter your department',
+                        enabled: _isEditing,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your department';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _designationController,
+                        label: 'Designation',
+                        hint: 'Enter your designation',
+                        enabled: _isEditing,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your designation';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _specializationController,
+                        label: 'Specialization',
+                        hint: 'Enter your specialization',
+                        enabled: _isEditing,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your specialization';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _experienceController,
+                        label: 'Years of Experience',
+                        hint: 'Enter years of experience',
+                        enabled: _isEditing,
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your experience';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _qualificationController,
+                        label: 'Qualification',
+                        hint: 'Enter your qualifications',
+                        enabled: _isEditing,
+                        maxLines: 2,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your qualifications';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildAvailabilityToggle(),
+                      const SizedBox(height: 24),
+                      _buildActionButtons(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return Center(
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+            backgroundImage: _selectedImage != null
+                ? FileImage(_selectedImage!)
+                : (_avatarUrl != null ? NetworkImage(_avatarUrl!) : null)
+                      as ImageProvider?,
+            child: _selectedImage == null && _avatarUrl == null
+                ? Icon(Icons.person, size: 50, color: AppTheme.primaryColor)
+                : null,
+          ),
+          if (_isEditing)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    bool enabled = true,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          enabled: enabled,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          validator: validator,
+          style: GoogleFonts.poppins(
+            color: enabled
+                ? AppTheme.primaryTextColor
+                : AppTheme.secondaryTextColor,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.poppins(color: AppTheme.secondaryTextColor),
+            filled: true,
+            fillColor: enabled
+                ? AppTheme.surfaceColor
+                : AppTheme.surfaceColor.withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvailabilityToggle() {
+    return Row(
+      children: [
+        Text(
+          'Available for Mentoring',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const Spacer(),
+        Switch(
+          value: _isAvailable,
+          onChanged: _isEditing
+              ? (value) {
+                  setState(() {
+                    _isAvailable = value;
+                  });
+                }
+              : null,
+          activeColor: AppTheme.primaryColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        if (_isEditing) ...[
+          Expanded(
+            child: TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      setState(() {
+                        _isEditing = false;
+                      });
+                      _loadProfileData(); // Reset to original data
+                    },
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _saveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Save Profile',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                    ),
+            ),
+          ),
+        ] else ...[
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Edit Profile',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => _showChangePasswordDialog(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Change Password',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String? newAvatarUrl = _avatarUrl;
+      if (_selectedImage != null) {
+        newAvatarUrl = await CloudinaryService.uploadImageFile(
+          _selectedImage!,
+          folder: 'mentor_avatars',
+        );
+      }
+
+      final mentorData = {
+        'name': _nameController.text.trim(),
+        'department': _departmentController.text.trim(),
+        'designation': _designationController.text.trim(),
+        'specialization': _specializationController.text.trim(),
+        'experience': _experienceController.text.trim(),
+        'qualification': _qualificationController.text.trim(),
+        'avatarUrl': newAvatarUrl,
+        'isAvailable': _isAvailable,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get()
+          .then((querySnapshot) {
+            if (querySnapshot.docs.isNotEmpty) {
+              querySnapshot.docs.first.reference.update(mentorData);
+            }
+          });
+
+      if (mounted) {
+        setState(() {
+          _isEditing = false;
+          _avatarUrl = newAvatarUrl;
+          _selectedImage = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Change Password',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Current Password',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'New Password',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Confirm New Password',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('New passwords do not match'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await user.updatePassword(newPasswordController.text);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Password updated successfully'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to update password: $e'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            child: const Text('Update Password'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MentorAttendanceTab extends StatelessWidget {
+  const _MentorAttendanceTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MentorAttendanceMarkingScreen();
   }
 }

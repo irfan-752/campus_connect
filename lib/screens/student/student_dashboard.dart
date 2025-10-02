@@ -328,7 +328,7 @@ class StudentDashboard extends StatelessWidget {
               .collection('notices')
               .where('isActive', isEqualTo: true)
               .orderBy('createdAt', descending: true)
-              .limit(3)
+              .limit(10) // Get more to filter properly
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -343,8 +343,30 @@ class StudentDashboard extends StatelessWidget {
               );
             }
 
+            // Filter notices by target audience and limit to 3
+            final filteredNotices = snapshot.data!.docs
+                .where((doc) {
+                  final notice = NoticeModel.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  );
+                  // Show notices that are either for 'All' or specifically for 'Student'
+                  return notice.targetAudience.contains('All') ||
+                      notice.targetAudience.contains('Student');
+                })
+                .take(3)
+                .toList();
+
+            if (filteredNotices.isEmpty) {
+              return const EmptyStateWidget(
+                title: "No recent notices",
+                subtitle: "Check back later for updates",
+                icon: Icons.campaign,
+              );
+            }
+
             return Column(
-              children: snapshot.data!.docs.map((doc) {
+              children: filteredNotices.map((doc) {
                 final notice = NoticeModel.fromMap(
                   doc.data() as Map<String, dynamic>,
                   doc.id,

@@ -13,6 +13,10 @@ class StudentModel {
   final List<String> courses;
   final String? mentorId;
   final String? parentEmail;
+  final String? phoneNumber;
+  final String? address;
+  final String? emergencyContact;
+  final String? bloodGroup;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -31,6 +35,10 @@ class StudentModel {
     this.courses = const [],
     this.mentorId,
     this.parentEmail,
+    this.phoneNumber,
+    this.address,
+    this.emergencyContact,
+    this.bloodGroup,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -51,6 +59,10 @@ class StudentModel {
       courses: List<String>.from(map['courses'] ?? []),
       mentorId: map['mentorId'],
       parentEmail: map['parentEmail'],
+      phoneNumber: map['phoneNumber'],
+      address: map['address'],
+      emergencyContact: map['emergencyContact'],
+      bloodGroup: map['bloodGroup'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
     );
@@ -71,6 +83,10 @@ class StudentModel {
       'courses': courses,
       'mentorId': mentorId,
       'parentEmail': parentEmail,
+      'phoneNumber': phoneNumber,
+      'address': address,
+      'emergencyContact': emergencyContact,
+      'bloodGroup': bloodGroup,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
     };

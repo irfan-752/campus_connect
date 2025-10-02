@@ -178,11 +178,30 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
           );
         }
 
+        // Filter notices by target audience
+        final filteredNotices = snapshot.data!.docs.where((doc) {
+          final notice = NoticeModel.fromMap(
+            doc.data() as Map<String, dynamic>,
+            doc.id,
+          );
+          // Show notices that are either for 'All' or specifically for 'Student'
+          return notice.targetAudience.contains('All') ||
+              notice.targetAudience.contains('Student');
+        }).toList();
+
+        if (filteredNotices.isEmpty) {
+          return const EmptyStateWidget(
+            title: "No notices found",
+            subtitle: "Check back later for new notices",
+            icon: Icons.campaign,
+          );
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.all(AppTheme.spacingM),
-          itemCount: snapshot.data!.docs.length,
+          itemCount: filteredNotices.length,
           itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
+            final doc = filteredNotices[index];
             final notice = NoticeModel.fromMap(
               doc.data() as Map<String, dynamic>,
               doc.id,
@@ -324,6 +343,8 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
   }
 
   Stream<QuerySnapshot> _getNoticesStream() {
+    // Get notices that are either for 'All' or specifically for 'Student'
+    // We'll use a compound query approach
     Query query = FirebaseFirestore.instance
         .collection('notices')
         .where('isActive', isEqualTo: true);

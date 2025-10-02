@@ -11,6 +11,7 @@ import 'admin_event_management.dart';
 import 'admin_notice_management.dart';
 import 'admin_analytics.dart';
 import 'admin_attendance_reporting.dart';
+import 'admin_course_assignments.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -28,6 +29,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const AdminEventManagement(),
     const AdminNoticeManagement(),
     const AdminAttendanceReporting(),
+    const AdminCourseAssignmentsScreen(),
     const AdminAnalytics(),
   ];
 
@@ -43,6 +45,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
       icon: Icon(Icons.fact_check),
       label: 'Attendance',
     ),
+    const BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Courses'),
     const BottomNavigationBarItem(
       icon: Icon(Icons.analytics),
       label: 'Analytics',
@@ -55,6 +58,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     'Event Management',
     'Notice Management',
     'Attendance Reporting',
+    'Course Assignments',
     'Analytics & Reports',
   ];
 
