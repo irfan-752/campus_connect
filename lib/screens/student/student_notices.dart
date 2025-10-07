@@ -171,12 +171,17 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          print('DEBUG: No notices found in Firestore');
           return const EmptyStateWidget(
             title: "No notices found",
             subtitle: "Check back later for new notices",
             icon: Icons.campaign,
           );
         }
+
+        print(
+          'DEBUG: Found ${snapshot.data!.docs.length} notices in Firestore',
+        );
 
         // Filter notices by target audience
         final filteredNotices = snapshot.data!.docs.where((doc) {
@@ -185,7 +190,9 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
             doc.id,
           );
           // Show notices that are either for 'All' or specifically for 'Student'
-          return notice.targetAudience.contains('All') ||
+          // Also show notices with no target audience specified (backward compatibility)
+          return notice.targetAudience.isEmpty ||
+              notice.targetAudience.contains('All') ||
               notice.targetAudience.contains('Student');
         }).toList();
 

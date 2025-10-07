@@ -189,7 +189,7 @@ class _MentorNoticesTab extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('notices')
-                .where('authorId', isEqualTo: user.uid)
+                .where('targetAudience', arrayContains: 'Teacher')
                 .orderBy('createdAt', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
@@ -481,7 +481,7 @@ class _MentorSessionsTab extends StatelessWidget {
             stream: FirebaseFirestore.instance
                 .collection('mentor_sessions')
                 .where('mentorId', isEqualTo: user.uid)
-                .orderBy('scheduledDate')
+                .orderBy('scheduledDate', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -677,55 +677,151 @@ class _MentorStudentsTab extends StatelessWidget {
           return const LoadingWidget(message: 'Loading students...');
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const EmptyStateWidget(
-            title: 'No assigned students',
-            subtitle: 'You will see assigned mentees here',
-            icon: Icons.people,
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Row(
+                  children: [
+                    Text(
+                      'My Students',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAssignStudentsDialog(context),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Assign Students'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: EmptyStateWidget(
+                  title: 'No assigned students',
+                  subtitle: 'Assign students to see them here',
+                  icon: Icons.people,
+                ),
+              ),
+            ],
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final data =
-                snapshot.data!.docs[index].data() as Map<String, dynamic>;
-            return CustomCard(
-              child: ListTile(
-                leading: const Icon(Icons.person, color: AppTheme.primaryColor),
-                title: Text(
-                  data['name'] ?? 'Student',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  '${data['department'] ?? ''} • ${data['semester'] ?? ''}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: AppTheme.secondaryTextColor,
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              child: Row(
+                children: [
+                  Text(
+                    'My Students',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: AppTheme.lightTextColor,
-                ),
-                onTap: () {
-                  final id = snapshot.data!.docs[index].id;
-                  final name = data['name'] ?? 'Student';
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MentorStudentAttendanceScreen(
-                        studentId: id,
-                        studentName: name,
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAssignStudentsDialog(context),
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Assign Students'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final data =
+                      snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                  return CustomCard(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.person,
+                        color: AppTheme.primaryColor,
                       ),
+                      title: Text(
+                        data['name'] ?? 'Student',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        '${data['department'] ?? ''} • ${data['semester'] ?? ''}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chat),
+                            onPressed: () => _startChatWithStudent(
+                              context,
+                              snapshot.data!.docs[index].id,
+                              data['name'] ?? 'Student',
+                            ),
+                            tooltip: 'Chat',
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: AppTheme.lightTextColor,
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        final id = snapshot.data!.docs[index].id;
+                        final name = data['name'] ?? 'Student';
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MentorStudentAttendanceScreen(
+                              studentId: id,
+                              studentName: name,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
               ),
-            );
-          },
+            ),
+          ],
         );
       },
+    );
+  }
+
+  void _showAssignStudentsDialog(BuildContext context) {
+    showDialog(context: context, builder: (context) => _AssignStudentsDialog());
+  }
+
+  void _startChatWithStudent(
+    BuildContext context,
+    String studentId,
+    String studentName,
+  ) {
+    // Navigate to chat with student
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            _MentorChatScreen(studentId: studentId, studentName: studentName),
+      ),
     );
   }
 }
@@ -1394,5 +1490,219 @@ class _MentorAttendanceTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MentorAttendanceMarkingScreen();
+  }
+}
+
+class _AssignStudentsDialog extends StatefulWidget {
+  @override
+  _AssignStudentsDialogState createState() => _AssignStudentsDialogState();
+}
+
+class _AssignStudentsDialogState extends State<_AssignStudentsDialog> {
+  List<Map<String, dynamic>> _allStudents = [];
+  List<String> _selectedStudentIds = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    setState(() => _isLoading = true);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('students')
+          .get();
+
+      setState(() {
+        _allStudents = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? 'Student',
+            'department': data['department'] ?? '',
+            'semester': data['semester'] ?? '',
+            'mentorId': data['mentorId'],
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading students: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.people, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Assign Students',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: _allStudents.length,
+                      itemBuilder: (context, index) {
+                        final student = _allStudents[index];
+                        final isSelected = _selectedStudentIds.contains(
+                          student['id'],
+                        );
+                        final hasMentor =
+                            student['mentorId'] != null &&
+                            student['mentorId'].isNotEmpty;
+
+                        return CheckboxListTile(
+                          title: Text(student['name']),
+                          subtitle: Text(
+                            '${student['department']} • ${student['semester']}',
+                          ),
+                          value: isSelected,
+                          onChanged: hasMentor
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedStudentIds.add(student['id']);
+                                    } else {
+                                      _selectedStudentIds.remove(student['id']);
+                                    }
+                                  });
+                                },
+                          secondary: hasMentor
+                              ? Icon(Icons.person, color: AppTheme.warningColor)
+                              : Icon(Icons.person_outline),
+                        );
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _selectedStudentIds.isEmpty
+                          ? null
+                          : _assignStudents,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Assign'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _assignStudents() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final studentId in _selectedStudentIds) {
+        final studentRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(studentId);
+        batch.update(studentRef, {
+          'mentorId': user.uid,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+
+      await batch.commit();
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Students assigned successfully'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to assign students: $e'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+}
+
+class _MentorChatScreen extends StatelessWidget {
+  final String studentId;
+  final String studentName;
+
+  const _MentorChatScreen({required this.studentId, required this.studentName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'Chat with $studentName',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.primaryTextColor,
+        elevation: 0,
+      ),
+      body: const Center(
+        child: Text('Chat functionality will be implemented here'),
+      ),
+    );
   }
 }

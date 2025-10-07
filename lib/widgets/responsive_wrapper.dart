@@ -95,6 +95,8 @@ class ResponsiveGrid extends StatelessWidget {
   final int? mobileColumns;
   final int? tabletColumns;
   final int? desktopColumns;
+  final bool shrinkWrap;
+  final ScrollPhysics? physics;
 
   const ResponsiveGrid({
     super.key,
@@ -105,6 +107,8 @@ class ResponsiveGrid extends StatelessWidget {
     this.mobileColumns,
     this.tabletColumns,
     this.desktopColumns,
+    this.shrinkWrap = true,
+    this.physics,
   });
 
   @override
@@ -133,10 +137,12 @@ class ResponsiveGrid extends StatelessWidget {
         (itemHeight * rowCount) + (mainAxisSpacing * (rowCount - 1));
 
     return SizedBox(
-      height: totalHeight,
+      height: shrinkWrap ? totalHeight : null,
       child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: shrinkWrap,
+        physics:
+            physics ??
+            (shrinkWrap ? const NeverScrollableScrollPhysics() : null),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
           childAspectRatio: childAspectRatio,

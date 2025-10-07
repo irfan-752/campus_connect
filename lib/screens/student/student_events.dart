@@ -144,12 +144,15 @@ class _StudentEventsScreenState extends State<StudentEventsScreen>
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          print('DEBUG: No events found in Firestore for upcoming events');
           return const EmptyStateWidget(
             title: "No upcoming events",
             subtitle: "Check back later for new events",
             icon: Icons.event,
           );
         }
+
+        print('DEBUG: Found ${snapshot.data!.docs.length} events in Firestore');
 
         return ListView.builder(
           padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -433,10 +436,12 @@ class _StudentEventsScreenState extends State<StudentEventsScreen>
         .collection('events')
         .where('isActive', isEqualTo: true);
 
+    final now = Timestamp.fromDate(DateTime.now());
+
     if (isUpcoming) {
-      query = query.where('startDate', isGreaterThan: DateTime.now());
+      query = query.where('startDate', isGreaterThan: now);
     } else if (isPast) {
-      query = query.where('endDate', isLessThan: DateTime.now());
+      query = query.where('endDate', isLessThan: now);
     }
 
     if (category != 'All') {

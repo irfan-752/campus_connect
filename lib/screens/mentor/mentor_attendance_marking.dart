@@ -153,10 +153,26 @@ class _MentorAttendanceMarkingScreenState
       body: _isLoading
           ? const LoadingWidget(message: 'Loading...')
           : _assignedCourses.isEmpty
-          ? const EmptyStateWidget(
-              title: 'No Assigned Courses',
-              subtitle: 'You have not been assigned to any courses yet',
-              icon: Icons.school,
+          ? Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Course Assignments',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: EmptyStateWidget(
+                    title: 'No Assigned Courses',
+                    subtitle: 'Contact admin to get assigned to courses',
+                    icon: Icons.school,
+                  ),
+                ),
+              ],
             )
           : Column(
               children: [

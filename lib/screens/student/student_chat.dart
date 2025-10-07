@@ -9,6 +9,7 @@ import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
 import '../../models/chat_model.dart';
+import 'student_mentor_selection.dart';
 
 class StudentChatScreen extends StatefulWidget {
   const StudentChatScreen({super.key});
@@ -129,61 +130,6 @@ class _StudentChatScreenState extends State<StudentChatScreen>
     Navigator.pop(context);
   }
 
-  void _showStartMentorChatDialog() {
-    final idController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Start Mentor Chat',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        content: TextField(
-          controller: idController,
-          decoration: const InputDecoration(
-            hintText: 'Enter mentor (teacher) user ID',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser!;
-              final mentorId = idController.text.trim();
-              if (mentorId.isEmpty) return;
-              final now = DateTime.now();
-              final room = ChatRoom(
-                id: '',
-                name: 'Mentor Chat',
-                description: 'Direct',
-                type: 'Direct',
-                participants: [user.uid, mentorId],
-                avatarUrl: null,
-                createdBy: user.uid,
-                createdAt: now,
-                lastMessageAt: now,
-                lastMessage: null,
-                isActive: true,
-              );
-              await FirebaseFirestore.instance
-                  .collection('chat_rooms')
-                  .add(room.toMap());
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Start'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTabBar() {
     return Container(
       decoration: const BoxDecoration(
@@ -255,40 +201,74 @@ class _StudentChatScreenState extends State<StudentChatScreen>
   Widget _buildMentorChats() {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('chat_rooms')
-          .where('participants', arrayContains: userId)
-          .where('type', isEqualTo: 'Direct')
-          .where('isActive', isEqualTo: true)
-          .orderBy('lastMessageAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading mentor chats...");
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const EmptyStateWidget(
-            title: "No mentor chats",
-            subtitle: "Connect with your mentors to start conversations",
-            icon: Icons.person,
-          );
-        }
-
-        return ListView.builder(
+    return Column(
+      children: [
+        // Browse mentors button
+        Container(
           padding: const EdgeInsets.all(AppTheme.spacingM),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
-            final chatRoom = ChatRoom.fromMap(
-              doc.data() as Map<String, dynamic>,
-              doc.id,
-            );
-            return _buildChatRoomCard(chatRoom, isMentor: true);
-          },
-        );
-      },
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StudentMentorSelectionScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person_search),
+              label: const Text("Browse All Mentors"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Existing mentor chats
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('chat_rooms')
+                .where('participants', arrayContains: userId)
+                .where('type', isEqualTo: 'Direct')
+                .where('isActive', isEqualTo: true)
+                .orderBy('lastMessageAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const LoadingWidget(message: "Loading mentor chats...");
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const EmptyStateWidget(
+                  title: "No mentor chats",
+                  subtitle: "Connect with your mentors to start conversations",
+                  icon: Icons.person,
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final doc = snapshot.data!.docs[index];
+                  final chatRoom = ChatRoom.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  );
+                  return _buildChatRoomCard(chatRoom, isMentor: true);
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -373,14 +353,13 @@ class _StudentChatScreenState extends State<StudentChatScreen>
                         ),
                       ),
                     ),
-                    if (chatRoom.lastMessageAt != null)
-                      Text(
-                        _formatTime(chatRoom.lastMessageAt),
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: AppTheme.secondaryTextColor,
-                        ),
+                    Text(
+                      _formatTime(chatRoom.lastMessageAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppTheme.secondaryTextColor,
                       ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppTheme.spacingXS),
@@ -533,17 +512,27 @@ class _StudentChatScreenState extends State<StudentChatScreen>
               AppTheme.primaryColor,
               () {
                 Navigator.pop(context);
-                // Navigate to mentor search
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StudentMentorSelectionScreen(),
+                  ),
+                );
               },
             ),
             _buildChatOption(
               "Start Mentor Chat",
-              "Enter mentor ID to start direct chat",
+              "Browse and select a mentor to chat with",
               Icons.person,
               AppTheme.primaryColor,
               () {
                 Navigator.pop(context);
-                _showStartMentorChatDialog();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StudentMentorSelectionScreen(),
+                  ),
+                );
               },
             ),
             _buildChatOption(
@@ -641,6 +630,22 @@ class ChatRoomScreen extends StatefulWidget {
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-scroll to bottom when messages change
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -692,6 +697,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             icon: Icons.chat,
           );
         }
+
+        // Auto-scroll to bottom when new messages arrive
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
 
         return ListView.builder(
           controller: _scrollController,
@@ -812,13 +828,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
           const SizedBox(width: AppTheme.spacingS),
           Container(
-            decoration: const BoxDecoration(
-              color: AppTheme.primaryColor,
+            decoration: BoxDecoration(
+              color: _isSending
+                  ? AppTheme.primaryColor.withOpacity(0.5)
+                  : AppTheme.primaryColor,
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white),
-              onPressed: _sendMessage,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send, color: Colors.white),
+              onPressed: _isSending ? null : _sendMessage,
             ),
           ),
         ],
@@ -826,32 +853,70 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final messageText = _messageController.text.trim();
-    if (messageText.isEmpty) return;
+    if (messageText.isEmpty || _isSending) return;
 
-    final user = FirebaseAuth.instance.currentUser!;
-    final message = ChatMessage(
-      id: '',
-      chatRoomId: widget.chatRoom.id,
-      senderId: user.uid,
-      senderName: user.displayName ?? 'Student',
-      message: messageText,
-      timestamp: DateTime.now(),
-    );
+    setState(() {
+      _isSending = true;
+    });
 
-    // Add message to Firestore
-    FirebaseFirestore.instance.collection('chat_messages').add(message.toMap());
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final now = DateTime.now();
 
-    // Update last message in chat room
-    FirebaseFirestore.instance
-        .collection('chat_rooms')
-        .doc(widget.chatRoom.id)
-        .update({
-          'lastMessage': messageText,
-          'lastMessageAt': DateTime.now().millisecondsSinceEpoch,
+      final message = ChatMessage(
+        id: '',
+        chatRoomId: widget.chatRoom.id,
+        senderId: user.uid,
+        senderName: user.displayName ?? 'Student',
+        message: messageText,
+        timestamp: now,
+      );
+
+      // Clear the input immediately for better UX
+      _messageController.clear();
+
+      // Add message to Firestore
+      await FirebaseFirestore.instance
+          .collection('chat_messages')
+          .add(message.toMap());
+
+      // Update last message in chat room
+      await FirebaseFirestore.instance
+          .collection('chat_rooms')
+          .doc(widget.chatRoom.id)
+          .update({
+            'lastMessage': messageText,
+            'lastMessageAt': now.millisecondsSinceEpoch,
+          });
+
+      // Auto-scroll to bottom after sending
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send message: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+        // Restore the message text
+        _messageController.text = messageText;
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
         });
-
-    _messageController.clear();
+      }
+    }
   }
 }

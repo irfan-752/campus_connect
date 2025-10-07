@@ -198,31 +198,31 @@ class StudentDashboard extends StatelessWidget {
       ),
     ];
 
-    if (ResponsiveHelper.isMobile(context)) {
-      return ResponsiveGrid(
-        mobileColumns: 2,
-        tabletColumns: 4,
-        desktopColumns: 4,
-        childAspectRatio: 1.5,
-        children: stats,
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 3 * AppTheme.spacingS) / 4;
-        return Row(
-          children: stats
-              .expand(
-                (stat) => [
-                  SizedBox(width: itemWidth, child: stat),
-                  if (stat != stats.last)
-                    const SizedBox(width: AppTheme.spacingS),
-                ],
-              )
-              .toList(),
-        );
-      },
+    return ResponsiveGrid(
+      mobileColumns: 2,
+      tabletColumns: 4,
+      desktopColumns: 4,
+      childAspectRatio: ResponsiveHelper.responsiveValue(
+        context,
+        mobile: 1.3,
+        tablet: 1.5,
+        desktop: 1.6,
+      ),
+      crossAxisSpacing: ResponsiveHelper.responsiveValue(
+        context,
+        mobile: AppTheme.spacingS,
+        tablet: AppTheme.spacingM,
+        desktop: AppTheme.spacingM,
+      ),
+      mainAxisSpacing: ResponsiveHelper.responsiveValue(
+        context,
+        mobile: AppTheme.spacingS,
+        tablet: AppTheme.spacingM,
+        desktop: AppTheme.spacingM,
+      ),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: stats,
     );
   }
 
@@ -351,7 +351,9 @@ class StudentDashboard extends StatelessWidget {
                     doc.id,
                   );
                   // Show notices that are either for 'All' or specifically for 'Student'
-                  return notice.targetAudience.contains('All') ||
+                  // Also show notices with no target audience specified (backward compatibility)
+                  return notice.targetAudience.isEmpty ||
+                      notice.targetAudience.contains('All') ||
                       notice.targetAudience.contains('Student');
                 })
                 .take(3)
@@ -536,6 +538,20 @@ class StudentDashboard extends StatelessWidget {
             tablet: 1.3,
             desktop: 1.0,
           ),
+          crossAxisSpacing: ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingS,
+            tablet: AppTheme.spacingM,
+            desktop: AppTheme.spacingM,
+          ),
+          mainAxisSpacing: ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingS,
+            tablet: AppTheme.spacingM,
+            desktop: AppTheme.spacingM,
+          ),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           children: [
             _buildActionCard(
               context,
