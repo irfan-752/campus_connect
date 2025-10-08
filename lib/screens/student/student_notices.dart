@@ -171,7 +171,7 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          print('DEBUG: No notices found in Firestore');
+          print('DEBUG STUDENT: No notices found in Firestore');
           return const EmptyStateWidget(
             title: "No notices found",
             subtitle: "Check back later for new notices",
@@ -180,7 +180,7 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
         }
 
         print(
-          'DEBUG: Found ${snapshot.data!.docs.length} notices in Firestore',
+          'DEBUG STUDENT: Found ${snapshot.data!.docs.length} notices in Firestore',
         );
 
         // Filter notices by target audience
@@ -189,12 +189,28 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
             doc.data() as Map<String, dynamic>,
             doc.id,
           );
+
+          // Debug logging
+          print(
+            'DEBUG STUDENT: Notice - Title: ${notice.title}, Author: ${notice.authorName}, Target: ${notice.targetAudience}',
+          );
+
           // Show notices that are either for 'All' or specifically for 'Student'
           // Also show notices with no target audience specified (backward compatibility)
-          return notice.targetAudience.isEmpty ||
+          final shouldShow =
+              notice.targetAudience.isEmpty ||
               notice.targetAudience.contains('All') ||
               notice.targetAudience.contains('Student');
+
+          print(
+            'DEBUG STUDENT: Should show notice "${notice.title}": $shouldShow',
+          );
+          return shouldShow;
         }).toList();
+
+        print(
+          'DEBUG STUDENT: After filtering, ${filteredNotices.length} notices remain',
+        );
 
         if (filteredNotices.isEmpty) {
           return const EmptyStateWidget(
@@ -331,10 +347,14 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
             const SizedBox(height: AppTheme.spacingS),
             Row(
               children: [
-                Icon(Icons.attach_file, size: 16, color: AppTheme.primaryColor),
+                Icon(
+                  _getAttachmentIcon(notice.attachmentType),
+                  size: 16,
+                  color: AppTheme.primaryColor,
+                ),
                 const SizedBox(width: AppTheme.spacingXS),
                 Text(
-                  "Attachment available",
+                  notice.attachmentName ?? "Attachment available",
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppTheme.primaryColor,
@@ -364,7 +384,7 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
       query = query.where('category', isEqualTo: _selectedCategory);
     }
 
-    return query.orderBy('createdAt', descending: true).snapshots();
+    return query.snapshots();
   }
 
   Color _getPriorityColor(String priority) {
@@ -390,6 +410,19 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
         return Icons.keyboard_arrow_down;
       default:
         return Icons.info;
+    }
+  }
+
+  IconData _getAttachmentIcon(String? attachmentType) {
+    switch (attachmentType) {
+      case 'image':
+        return Icons.image;
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'link':
+        return Icons.link;
+      default:
+        return Icons.attach_file;
     }
   }
 
@@ -576,7 +609,7 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.attach_file,
+                                  _getAttachmentIcon(notice.attachmentType),
                                   color: AppTheme.primaryColor,
                                 ),
                                 const SizedBox(width: AppTheme.spacingM),
@@ -586,7 +619,7 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Attachment",
+                                        notice.attachmentName ?? "Attachment",
                                         style: GoogleFonts.poppins(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -594,7 +627,9 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
                                         ),
                                       ),
                                       Text(
-                                        "Tap to download or view",
+                                        notice.attachmentType == 'link'
+                                            ? 'External Link'
+                                            : 'Tap to download or view',
                                         style: GoogleFonts.poppins(
                                           fontSize: 12,
                                           color: AppTheme.secondaryTextColor,
@@ -604,8 +639,10 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.download,
+                                  icon: Icon(
+                                    notice.attachmentType == 'link'
+                                        ? Icons.open_in_new
+                                        : Icons.download,
                                     color: AppTheme.primaryColor,
                                   ),
                                   onPressed: () =>

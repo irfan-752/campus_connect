@@ -8,6 +8,8 @@ class NoticeModel {
   final String category;
   final List<String> targetAudience; // Student, Teacher, Parent, All
   final String? attachmentUrl;
+  final String? attachmentType; // 'image', 'pdf', 'link'
+  final String? attachmentName;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,6 +25,8 @@ class NoticeModel {
     this.category = 'General',
     this.targetAudience = const ['All'],
     this.attachmentUrl,
+    this.attachmentType,
+    this.attachmentName,
     this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
@@ -40,6 +44,8 @@ class NoticeModel {
       category: map['category'] ?? 'General',
       targetAudience: List<String>.from(map['targetAudience'] ?? ['All']),
       attachmentUrl: map['attachmentUrl'],
+      attachmentType: map['attachmentType'],
+      attachmentName: map['attachmentName'],
       isActive: map['isActive'] ?? true,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
@@ -57,6 +63,8 @@ class NoticeModel {
       'category': category,
       'targetAudience': targetAudience,
       'attachmentUrl': attachmentUrl,
+      'attachmentType': attachmentType,
+      'attachmentName': attachmentName,
       'isActive': isActive,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,

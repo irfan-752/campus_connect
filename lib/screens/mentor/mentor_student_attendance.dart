@@ -125,7 +125,7 @@ class MentorStudentAttendanceScreen extends StatelessWidget {
           ),
         ),
         title: Text(
-          r.subjectName,
+          r.subjectName ?? 'Subject',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(

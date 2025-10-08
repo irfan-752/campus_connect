@@ -7,25 +7,25 @@ import '../../utils/app_theme.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/empty_state_widget.dart';
 
-class StudentChatScreen extends StatefulWidget {
-  const StudentChatScreen({super.key});
+class MentorChatScreen extends StatefulWidget {
+  const MentorChatScreen({super.key});
 
   @override
-  State<StudentChatScreen> createState() => _StudentChatScreenState();
+  State<MentorChatScreen> createState() => _MentorChatScreenState();
 }
 
-class _StudentChatScreenState extends State<StudentChatScreen> {
+class _MentorChatScreenState extends State<MentorChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  String? _selectedTeacherId;
-  String? _selectedTeacherName;
-  List<Map<String, dynamic>> _teachers = [];
+  String? _selectedStudentId;
+  String? _selectedStudentName;
+  List<Map<String, dynamic>> _students = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadTeachers();
+    _loadStudents();
   }
 
   @override
@@ -35,37 +35,38 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
     super.dispose();
   }
 
-  Future<void> _loadTeachers() async {
+  Future<void> _loadStudents() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Get student's department and semester
-      final studentDoc = await FirebaseFirestore.instance
-          .collection('students')
-          .doc(user.uid)
+      // Get teacher's department and semester
+      final teacherDoc = await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
           .get();
 
-      if (studentDoc.exists) {
-        final studentData = studentDoc.data()!;
-        final department = studentData['department'];
-        final semester = studentData['semester'];
+      if (teacherDoc.docs.isNotEmpty) {
+        final teacherData = teacherDoc.docs.first.data();
+        final department = teacherData['department'];
+        final semester = teacherData['semester'];
 
-        // Get teachers from same department and semester
-        final teachersSnapshot = await FirebaseFirestore.instance
-            .collection('mentors')
+        // Get students from same department and semester
+        final studentsSnapshot = await FirebaseFirestore.instance
+            .collection('students')
             .where('department', isEqualTo: department)
             .where('semester', isEqualTo: semester)
             .get();
 
         setState(() {
-          _teachers = teachersSnapshot.docs.map((doc) {
+          _students = studentsSnapshot.docs.map((doc) {
             final data = doc.data();
             return {
               'id': doc.id,
-              'name': data['name'] ?? 'Teacher',
+              'name': data['name'] ?? 'Student',
               'department': data['department'] ?? '',
               'semester': data['semester'] ?? '',
             };
@@ -73,7 +74,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
         });
       }
     } catch (e) {
-      print('Error loading teachers: $e');
+      print('Error loading students: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -85,44 +86,44 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(
-          _selectedTeacherName != null
-              ? 'Chat with $_selectedTeacherName'
-              : 'Select Teacher',
+          _selectedStudentName != null
+              ? 'Chat with $_selectedStudentName'
+              : 'Select Student',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
         actions: [
-          if (_selectedTeacherId != null)
+          if (_selectedStudentId != null)
             IconButton(
               onPressed: () {
                 setState(() {
-                  _selectedTeacherId = null;
-                  _selectedTeacherName = null;
+                  _selectedStudentId = null;
+                  _selectedStudentName = null;
                 });
               },
               icon: const Icon(Icons.close),
-              tooltip: 'Back to teacher list',
+              tooltip: 'Back to student list',
             ),
         ],
       ),
-      body: _selectedTeacherId == null
-          ? _buildTeacherList()
+      body: _selectedStudentId == null
+          ? _buildStudentList()
           : _buildChatInterface(),
     );
   }
 
-  Widget _buildTeacherList() {
+  Widget _buildStudentList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_teachers.isEmpty) {
+    if (_students.isEmpty) {
       return const Center(
         child: EmptyStateWidget(
-          title: 'No teachers available',
-          subtitle: 'No teachers found in your department and semester',
+          title: 'No students available',
+          subtitle: 'No students found in your department and semester',
           icon: Icons.person_off,
         ),
       );
@@ -130,24 +131,24 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(AppTheme.spacingM),
-      itemCount: _teachers.length,
+      itemCount: _students.length,
       itemBuilder: (context, index) {
-        final teacher = _teachers[index];
+        final student = _students[index];
         return CustomCard(
           margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
           child: ListTile(
             leading: CircleAvatar(
               child: Text(
-                teacher['name'][0].toUpperCase(),
+                student['name'][0].toUpperCase(),
                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
               ),
             ),
             title: Text(
-              teacher['name'],
+              student['name'],
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              '${teacher['department']} • ${teacher['semester']}',
+              '${student['department']} • ${student['semester']}',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: AppTheme.secondaryTextColor,
@@ -156,8 +157,8 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
             trailing: const Icon(Icons.chat),
             onTap: () {
               setState(() {
-                _selectedTeacherId = teacher['id'];
-                _selectedTeacherName = teacher['name'];
+                _selectedStudentId = student['id'];
+                _selectedStudentName = student['name'];
               });
             },
           ),
@@ -178,8 +179,8 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
                   'participants',
                   arrayContains: FirebaseAuth.instance.currentUser!.uid,
                 )
-                .where('teacherId', isEqualTo: _selectedTeacherId)
-                .orderBy('timestamp', descending: true)
+                .where('studentId', isEqualTo: _selectedStudentId)
+                
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -190,7 +191,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
                 return const Center(
                   child: EmptyStateWidget(
                     title: 'No messages yet',
-                    subtitle: 'Start a conversation with your teacher',
+                    subtitle: 'Start a conversation with your student',
                     icon: Icons.chat_bubble_outline,
                   ),
                 );
@@ -373,11 +374,11 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
     try {
       await FirebaseFirestore.instance.collection('chats').add({
         'senderId': user.uid,
-        'senderName': user.displayName ?? 'Student',
-        'teacherId': _selectedTeacherId,
+        'senderName': user.displayName ?? 'Teacher',
+        'studentId': _selectedStudentId,
         'text': _messageController.text.trim(),
         'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'participants': [user.uid, _selectedTeacherId!],
+        'participants': [user.uid, _selectedStudentId!],
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
 

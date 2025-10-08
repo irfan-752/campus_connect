@@ -10,10 +10,12 @@ import '../../widgets/empty_state_widget.dart';
 import '../../models/notice_model.dart';
 import '../../models/mentor_model.dart';
 import 'mentor_student_attendance.dart';
-import 'mentor_attendance_marking.dart';
+import 'mentor_chat.dart';
 import '../../services/cloudinary_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 class MentorHomeScreen extends StatefulWidget {
   const MentorHomeScreen({super.key});
@@ -26,10 +28,12 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  TabController get tabController => _tabController;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -114,6 +118,7 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
             Tab(text: 'Sessions'),
             Tab(text: 'Students'),
             Tab(text: 'Attendance'),
+            Tab(text: 'Chat'),
           ],
         ),
       ),
@@ -126,6 +131,7 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
             _MentorSessionsTab(),
             _MentorStudentsTab(),
             _MentorAttendanceTab(),
+            MentorChatScreen(),
           ],
         ),
       ),
@@ -133,19 +139,296 @@ class _MentorHomeScreenState extends State<MentorHomeScreen>
   }
 }
 
-class _MentorDashboardTab extends StatelessWidget {
+class _MentorDashboardTab extends StatefulWidget {
   const _MentorDashboardTab();
 
   @override
+  State<_MentorDashboardTab> createState() => _MentorDashboardTabState();
+}
+
+class _MentorDashboardTabState extends State<_MentorDashboardTab> {
+  String? _teacherName;
+  String? _department;
+  String? _semester;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeacherProfile();
+  }
+
+  Future<void> _loadTeacherProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (doc.docs.isNotEmpty) {
+        final data = doc.docs.first.data();
+        setState(() {
+          _teacherName = data['name'] ?? 'Teacher';
+          _department = data['department'] ?? '';
+          _semester = data['semester'] ?? '';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingM),
-      children: const [
-        CustomCard(child: SizedBox(height: 120)),
-        SizedBox(height: AppTheme.spacingM),
-        CustomCard(child: SizedBox(height: 240)),
+      children: [
+        // Welcome Card
+        CustomCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                      child: Icon(
+                        Icons.person,
+                        size: 30,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingM),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome back,',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                          Text(
+                            _teacherName ?? 'Teacher',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                          ),
+                          if (_department != null && _semester != null)
+                            Text(
+                              '$_department • Semester $_semester',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppTheme.secondaryTextColor,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _showProfileDialog(context),
+                      icon: const Icon(Icons.settings),
+                      tooltip: 'Profile Settings',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppTheme.spacingM),
+
+        // Quick Actions
+        Text(
+          'Quick Actions',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+
+        // Action Cards
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                context,
+                'Profile Settings',
+                Icons.person,
+                AppTheme.primaryColor,
+                () => _showProfileDialog(context),
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: _buildActionCard(
+                context,
+                'My Students',
+                Icons.people,
+                AppTheme.successColor,
+                () => _navigateToStudents(),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: AppTheme.spacingM),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                context,
+                'Mark Attendance',
+                Icons.check_circle,
+                AppTheme.warningColor,
+                () => _navigateToAttendance(),
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: _buildActionCard(
+                context,
+                'Chat with Students',
+                Icons.chat,
+                AppTheme.accentColor,
+                () => _navigateToChat(),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: AppTheme.spacingL),
+
+        // Recent Activity
+        Text(
+          'Recent Activity',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+
+        CustomCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.notifications,
+                    color: AppTheme.primaryColor,
+                  ),
+                  title: Text(
+                    'Profile Setup',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'Complete your profile to get started',
+                    style: GoogleFonts.poppins(fontSize: 12),
+                  ),
+                  trailing: TextButton(
+                    onPressed: () => _showProfileDialog(context),
+                    child: const Text('Setup'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CustomCard(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: AppTheme.spacingS),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.primaryTextColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showProfileDialog(BuildContext context) {
+    showDialog(context: context, builder: (context) => _MentorProfileDialog());
+  }
+
+  void _navigateToStudents() {
+    // Navigate to students tab
+    final mentorHomeScreen = context
+        .findAncestorStateOfType<_MentorHomeScreenState>();
+    mentorHomeScreen?.tabController.animateTo(3);
+  }
+
+  void _navigateToAttendance() {
+    // Navigate to attendance tab
+    final mentorHomeScreen = context
+        .findAncestorStateOfType<_MentorHomeScreenState>();
+    mentorHomeScreen?.tabController.animateTo(4);
+  }
+
+  void _navigateToChat() {
+    // Navigate to chat tab
+    final mentorHomeScreen = context
+        .findAncestorStateOfType<_MentorHomeScreenState>();
+    mentorHomeScreen?.tabController.animateTo(5);
   }
 }
 
@@ -189,8 +472,7 @@ class _MentorNoticesTab extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('notices')
-                .where('targetAudience', arrayContains: 'Teacher')
-                .orderBy('createdAt', descending: true)
+                .where('isActive', isEqualTo: true)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -198,6 +480,47 @@ class _MentorNoticesTab extends StatelessWidget {
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                print('DEBUG TEACHER: No notices found in Firestore');
+                return const EmptyStateWidget(
+                  title: 'No notices yet',
+                  subtitle: 'Create your first notice',
+                  icon: Icons.campaign,
+                );
+              }
+
+              print(
+                'DEBUG TEACHER: Found ${snapshot.data!.docs.length} notices in Firestore',
+              );
+
+              // Filter notices by target audience
+              final filteredNotices = snapshot.data!.docs.where((doc) {
+                final notice = NoticeModel.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                );
+
+                // Debug logging
+                print(
+                  'DEBUG: Notice - Title: ${notice.title}, Author: ${notice.authorName}, Target: ${notice.targetAudience}',
+                );
+
+                // Show notices that are either for 'All' or specifically for 'Teacher'
+                final shouldShow =
+                    notice.targetAudience.isEmpty ||
+                    notice.targetAudience.contains('All') ||
+                    notice.targetAudience.contains('Teacher');
+
+                print(
+                  'DEBUG: Should show notice "${notice.title}": $shouldShow',
+                );
+                return shouldShow;
+              }).toList();
+
+              print(
+                'DEBUG TEACHER: After filtering, ${filteredNotices.length} notices remain',
+              );
+
+              if (filteredNotices.isEmpty) {
                 return const EmptyStateWidget(
                   title: 'No notices yet',
                   subtitle: 'Create your first notice',
@@ -207,9 +530,9 @@ class _MentorNoticesTab extends StatelessWidget {
 
               return ListView.builder(
                 padding: const EdgeInsets.all(AppTheme.spacingM),
-                itemCount: snapshot.data!.docs.length,
+                itemCount: filteredNotices.length,
                 itemBuilder: (context, index) {
-                  final doc = snapshot.data!.docs[index];
+                  final doc = filteredNotices[index];
                   final notice = NoticeModel.fromMap(
                     doc.data() as Map<String, dynamic>,
                     doc.id,
@@ -227,10 +550,13 @@ class _MentorNoticesTab extends StatelessWidget {
   void _showCreateNoticeDialog(BuildContext context) {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
+    final linkController = TextEditingController();
     String priority = 'Medium';
     String category = 'General';
-    List<String> audience = ['Student'];
+    List<String> audience = ['Teacher'];
     File? attachment;
+    String attachmentType = 'none'; // 'none', 'image', 'pdf', 'link'
+    String? attachmentName;
 
     showDialog(
       context: context,
@@ -359,31 +685,115 @@ class _MentorNoticesTab extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          attachment == null
-                              ? 'No attachment'
-                              : attachment!.path.split('/').last,
-                          style: GoogleFonts.poppins(fontSize: 12),
-                        ),
+                  // Attachment Type Selection
+                  DropdownButtonFormField<String>(
+                    value: attachmentType,
+                    decoration: const InputDecoration(
+                      labelText: 'Attachment Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'none',
+                        child: Text('No Attachment'),
                       ),
-                      TextButton.icon(
-                        onPressed: () async {
-                          final picker = ImagePicker();
-                          final picked = await picker.pickImage(
-                            source: ImageSource.gallery,
-                          );
-                          if (picked != null) {
-                            setState(() => attachment = File(picked.path));
-                          }
-                        },
-                        icon: const Icon(Icons.attach_file),
-                        label: const Text('Attach'),
+                      DropdownMenuItem(value: 'image', child: Text('Image')),
+                      DropdownMenuItem(
+                        value: 'pdf',
+                        child: Text('PDF Document'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'link',
+                        child: Text('External Link'),
                       ),
                     ],
+                    onChanged: (value) {
+                      setState(() {
+                        attachmentType = value ?? 'none';
+                        attachment = null;
+                        attachmentName = null;
+                        linkController.clear();
+                      });
+                    },
                   ),
+
+                  // Attachment Content based on type
+                  if (attachmentType == 'image') ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            attachment == null
+                                ? 'No image selected'
+                                : attachment!.path.split('/').last,
+                            style: GoogleFonts.poppins(fontSize: 12),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final picked = await picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                attachment = File(picked.path);
+                                attachmentName = picked.path.split('/').last;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.image),
+                          label: const Text('Select Image'),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  if (attachmentType == 'pdf') ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            attachment == null
+                                ? 'No PDF selected'
+                                : attachment!.path.split('/').last,
+                            style: GoogleFonts.poppins(fontSize: 12),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final picked = await picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                attachment = File(picked.path);
+                                attachmentName = picked.path.split('/').last;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.picture_as_pdf),
+                          label: const Text('Select PDF'),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  if (attachmentType == 'link') ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: linkController,
+                      decoration: const InputDecoration(
+                        labelText: 'External Link',
+                        hintText: 'https://example.com',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -397,12 +807,24 @@ class _MentorNoticesTab extends StatelessWidget {
                   final user = FirebaseAuth.instance.currentUser!;
                   final now = DateTime.now();
                   String? attachmentUrl;
-                  if (attachment != null) {
-                    attachmentUrl = await CloudinaryService.uploadImageFile(
-                      attachment!,
-                      folder: 'notice_attachments',
-                    );
+                  String? finalAttachmentType;
+                  String? finalAttachmentName;
+
+                  if (attachmentType != 'none') {
+                    if (attachmentType == 'link') {
+                      attachmentUrl = linkController.text.trim();
+                      finalAttachmentType = 'link';
+                      finalAttachmentName = 'External Link';
+                    } else if (attachment != null) {
+                      attachmentUrl = await CloudinaryService.uploadImageFile(
+                        attachment!,
+                        folder: 'notice_attachments',
+                      );
+                      finalAttachmentType = attachmentType;
+                      finalAttachmentName = attachmentName;
+                    }
                   }
+
                   final notice = NoticeModel(
                     id: '',
                     title: titleController.text.trim(),
@@ -413,8 +835,10 @@ class _MentorNoticesTab extends StatelessWidget {
                     category: category,
                     targetAudience: audience.isNotEmpty
                         ? audience
-                        : ['Student'],
+                        : ['Teacher'],
                     attachmentUrl: attachmentUrl,
+                    attachmentType: finalAttachmentType,
+                    attachmentName: finalAttachmentName,
                     isActive: true,
                     createdAt: now,
                     updatedAt: now,
@@ -657,8 +1081,45 @@ class _MentorSessionsTab extends StatelessWidget {
   }
 }
 
-class _MentorStudentsTab extends StatelessWidget {
+class _MentorStudentsTab extends StatefulWidget {
   const _MentorStudentsTab();
+
+  @override
+  State<_MentorStudentsTab> createState() => _MentorStudentsTabState();
+}
+
+class _MentorStudentsTabState extends State<_MentorStudentsTab> {
+  String? _teacherDepartment;
+  String? _teacherSemester;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeacherProfile();
+  }
+
+  Future<void> _loadTeacherProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (doc.docs.isNotEmpty) {
+        final data = doc.docs.first.data();
+        setState(() {
+          _teacherDepartment = data['department'];
+          _teacherSemester = data['semester'];
+        });
+      }
+    } catch (e) {
+      print('Error loading teacher profile: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -667,10 +1128,24 @@ class _MentorStudentsTab extends StatelessWidget {
       return const Center(child: Text('Not authenticated'));
     }
 
+    if (_teacherDepartment == null || _teacherSemester == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading teacher profile...'),
+          ],
+        ),
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('students')
-          .where('mentorId', isEqualTo: user.uid)
+          .where('department', isEqualTo: _teacherDepartment)
+          .where('semester', isEqualTo: _teacherSemester)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -691,22 +1166,13 @@ class _MentorStudentsTab extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAssignStudentsDialog(context),
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('Assign Students'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
                   ],
                 ),
               ),
               const Expanded(
                 child: EmptyStateWidget(
-                  title: 'No assigned students',
-                  subtitle: 'Assign students to see them here',
+                  title: 'No students found',
+                  subtitle: 'No students in your department and semester',
                   icon: Icons.people,
                 ),
               ),
@@ -720,20 +1186,10 @@ class _MentorStudentsTab extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    'My Students',
+                    'Students in $_teacherDepartment - Semester $_teacherSemester',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAssignStudentsDialog(context),
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Assign Students'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
                     ),
                   ),
                 ],
@@ -806,10 +1262,6 @@ class _MentorStudentsTab extends StatelessWidget {
     );
   }
 
-  void _showAssignStudentsDialog(BuildContext context) {
-    showDialog(context: context, builder: (context) => _AssignStudentsDialog());
-  }
-
   void _startChatWithStudent(
     BuildContext context,
     String studentId,
@@ -840,16 +1292,43 @@ class _NoticeItem extends StatelessWidget {
           notice.title,
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          notice.description,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(fontSize: 12),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              notice.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(fontSize: 12),
+            ),
+            if (notice.attachmentUrl != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    _getAttachmentIcon(notice.attachmentType),
+                    size: 16,
+                    color: AppTheme.primaryColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    notice.attachmentName ?? 'Attachment',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
         trailing: Text(
           notice.priority,
           style: GoogleFonts.poppins(fontSize: 12),
         ),
+        onTap: () => _showNoticeDetails(context, notice),
       ),
     );
   }
@@ -862,6 +1341,172 @@ class _NoticeItem extends StatelessWidget {
         return AppTheme.successColor;
       default:
         return AppTheme.warningColor;
+    }
+  }
+
+  IconData _getAttachmentIcon(String? attachmentType) {
+    switch (attachmentType) {
+      case 'image':
+        return Icons.image;
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'link':
+        return Icons.link;
+      default:
+        return Icons.attach_file;
+    }
+  }
+
+  void _showNoticeDetails(BuildContext context, NoticeModel notice) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          notice.title,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                notice.description,
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _colorByPriority(notice.priority).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      notice.priority,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: _colorByPriority(notice.priority),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      notice.category,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'By: ${notice.authorName}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Created: ${DateFormat('MMM dd, yyyy • hh:mm a').format(notice.createdAt)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+              if (notice.attachmentUrl != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.primaryColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getAttachmentIcon(notice.attachmentType),
+                        color: AppTheme.primaryColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              notice.attachmentName ?? 'Attachment',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryTextColor,
+                              ),
+                            ),
+                            Text(
+                              notice.attachmentType == 'link'
+                                  ? 'External Link'
+                                  : 'Tap to view',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppTheme.secondaryTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.open_in_new,
+                          color: AppTheme.primaryColor,
+                        ),
+                        onPressed: () => _openAttachment(notice.attachmentUrl!),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openAttachment(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      // Handle error silently or show a snackbar
+      print('Failed to open attachment: $e');
     }
   }
 }
@@ -880,12 +1525,15 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
   final _specializationController = TextEditingController();
   final _experienceController = TextEditingController();
   final _qualificationController = TextEditingController();
+  final _semesterController = TextEditingController();
 
   String? _avatarUrl;
+  String? _idCardUrl;
   bool _isAvailable = true;
   bool _isLoading = false;
   bool _isEditing = false;
   File? _selectedImage;
+  File? _selectedIdCard;
 
   @override
   void initState() {
@@ -902,6 +1550,7 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
     _specializationController.dispose();
     _experienceController.dispose();
     _qualificationController.dispose();
+    _semesterController.dispose();
     super.dispose();
   }
 
@@ -926,7 +1575,9 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
           _specializationController.text = data['specialization'] ?? '';
           _experienceController.text = data['experience'] ?? '';
           _qualificationController.text = data['qualification'] ?? '';
+          _semesterController.text = data['semester'] ?? '';
           _avatarUrl = data['avatarUrl'];
+          _idCardUrl = data['idCardUrl'];
           _isAvailable = data['isAvailable'] ?? true;
         });
       }
@@ -1080,6 +1731,22 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
                         },
                       ),
                       const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _semesterController,
+                        label: 'Semester',
+                        hint: 'Enter semester (e.g., 1, 2, 3, 4)',
+                        enabled: _isEditing,
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your semester';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildIdCardSection(),
+                      const SizedBox(height: 16),
                       _buildAvailabilityToggle(),
                       const SizedBox(height: 24),
                       _buildActionButtons(),
@@ -1182,6 +1849,72 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
               horizontal: 16,
               vertical: 12,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIdCardSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ID Card',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppTheme.dividerColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.credit_card, color: AppTheme.primaryColor, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedIdCard != null
+                          ? _selectedIdCard!.path.split('/').last
+                          : _idCardUrl != null
+                          ? 'ID Card uploaded'
+                          : 'No ID card uploaded',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    if (_idCardUrl != null && _selectedIdCard == null)
+                      Text(
+                        'Tap to view current ID card',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_isEditing)
+                TextButton.icon(
+                  onPressed: _pickIdCard,
+                  icon: const Icon(Icons.upload, size: 16),
+                  label: Text(
+                    _selectedIdCard != null ? 'Change' : 'Upload',
+                    style: GoogleFonts.poppins(fontSize: 12),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -1318,6 +2051,17 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
     }
   }
 
+  Future<void> _pickIdCard() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedIdCard = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -1337,6 +2081,14 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
         );
       }
 
+      String? newIdCardUrl = _idCardUrl;
+      if (_selectedIdCard != null) {
+        newIdCardUrl = await CloudinaryService.uploadImageFile(
+          _selectedIdCard!,
+          folder: 'mentor_id_cards',
+        );
+      }
+
       final mentorData = {
         'name': _nameController.text.trim(),
         'department': _departmentController.text.trim(),
@@ -1344,7 +2096,9 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
         'specialization': _specializationController.text.trim(),
         'experience': _experienceController.text.trim(),
         'qualification': _qualificationController.text.trim(),
+        'semester': _semesterController.text.trim(),
         'avatarUrl': newAvatarUrl,
+        'idCardUrl': newIdCardUrl,
         'isAvailable': _isAvailable,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       };
@@ -1364,7 +2118,9 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
         setState(() {
           _isEditing = false;
           _avatarUrl = newAvatarUrl;
+          _idCardUrl = newIdCardUrl;
           _selectedImage = null;
+          _selectedIdCard = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1484,12 +2240,446 @@ class _MentorProfileDialogState extends State<_MentorProfileDialog> {
   }
 }
 
-class _MentorAttendanceTab extends StatelessWidget {
+class _MentorAttendanceTab extends StatefulWidget {
   const _MentorAttendanceTab();
 
   @override
+  State<_MentorAttendanceTab> createState() => _MentorAttendanceTabState();
+}
+
+class _MentorAttendanceTabState extends State<_MentorAttendanceTab> {
+  DateTime _selectedDate = DateTime.now();
+  String? _teacherDepartment;
+  String? _teacherSemester;
+  List<Map<String, dynamic>> _students = [];
+  Map<String, String> _attendanceStatus = {}; // studentId -> status
+  Map<String, String> _attendanceRemarks = {}; // studentId -> remarks
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeacherProfile();
+  }
+
+  Future<void> _loadTeacherProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('mentors')
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (doc.docs.isNotEmpty) {
+        final data = doc.docs.first.data();
+        setState(() {
+          _teacherDepartment = data['department'];
+          _teacherSemester = data['semester'];
+        });
+        _loadStudents();
+      }
+    } catch (e) {
+      print('Error loading teacher profile: $e');
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    if (_teacherDepartment == null || _teacherSemester == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('students')
+          .where('department', isEqualTo: _teacherDepartment)
+          .where('semester', isEqualTo: _teacherSemester)
+          .get();
+
+      setState(() {
+        _students = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? 'Student',
+            'department': data['department'] ?? '',
+            'semester': data['semester'] ?? '',
+          };
+        }).toList();
+      });
+
+      _loadExistingAttendance();
+    } catch (e) {
+      print('Error loading students: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadExistingAttendance() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final snapshot = await FirebaseFirestore.instance
+          .collection('attendance')
+          .where('teacherId', isEqualTo: user.uid)
+          .where('date', isEqualTo: dateStr)
+          .get();
+
+      setState(() {
+        _attendanceStatus = {};
+        _attendanceRemarks = {};
+
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          _attendanceStatus[data['studentId']] = data['status'] ?? 'Absent';
+          _attendanceRemarks[data['studentId']] = data['remarks'] ?? '';
+        }
+      });
+    } catch (e) {
+      print('Error loading attendance: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const MentorAttendanceMarkingScreen();
+    if (_teacherDepartment == null || _teacherSemester == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading teacher profile...'),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Date selector and header
+        Container(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: AppTheme.dividerColor)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Attendance for ${DateFormat('MMM dd, yyyy').format(_selectedDate)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: _selectDate,
+                    icon: const Icon(Icons.calendar_today),
+                    tooltip: 'Select Date',
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingS),
+              Text(
+                '$_teacherDepartment - Semester $_teacherSemester',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Students list
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _students.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No students found in your department and semester',
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  itemCount: _students.length,
+                  itemBuilder: (context, index) {
+                    final student = _students[index];
+                    final studentId = student['id'];
+                    final currentStatus =
+                        _attendanceStatus[studentId] ?? 'Absent';
+
+                    return CustomCard(
+                      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: CircleAvatar(
+                              child: Text(
+                                student['name'][0].toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              student['name'],
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${student['department']} • ${student['semester']}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppTheme.secondaryTextColor,
+                              ),
+                            ),
+                            trailing: _buildStatusChip(currentStatus),
+                          ),
+
+                          // Status buttons
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingM,
+                              vertical: AppTheme.spacingS,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    'Present',
+                                    currentStatus == 'Present',
+                                    AppTheme.successColor,
+                                    () =>
+                                        _updateAttendance(studentId, 'Present'),
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingS),
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    'Absent',
+                                    currentStatus == 'Absent',
+                                    AppTheme.errorColor,
+                                    () =>
+                                        _updateAttendance(studentId, 'Absent'),
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingS),
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    'Late',
+                                    currentStatus == 'Late',
+                                    AppTheme.warningColor,
+                                    () => _updateAttendance(studentId, 'Late'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Remarks field
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingM,
+                              vertical: AppTheme.spacingS,
+                            ),
+                            child: TextField(
+                              controller: TextEditingController(
+                                text: _attendanceRemarks[studentId] ?? '',
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'Remarks (optional)',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                _attendanceRemarks[studentId] = value;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Save button
+        Container(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppTheme.dividerColor)),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveAttendance,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                'Save Attendance',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color color;
+    switch (status) {
+      case 'Present':
+        color = AppTheme.successColor;
+        break;
+      case 'Late':
+        color = AppTheme.warningColor;
+        break;
+      default:
+        color = AppTheme.errorColor;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status,
+        style: GoogleFonts.poppins(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusButton(
+    String status,
+    bool isSelected,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color),
+        ),
+        child: Text(
+          status,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateAttendance(String studentId, String status) {
+    setState(() {
+      _attendanceStatus[studentId] = status;
+    });
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      _loadExistingAttendance();
+    }
+  }
+
+  Future<void> _saveAttendance() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+      for (final student in _students) {
+        final studentId = student['id'];
+        final status = _attendanceStatus[studentId] ?? 'Absent';
+        final remarks = _attendanceRemarks[studentId] ?? '';
+
+        final attendanceRef = FirebaseFirestore.instance
+            .collection('attendance')
+            .doc('${user.uid}_${studentId}_$dateStr');
+
+        batch.set(attendanceRef, {
+          'studentId': studentId,
+          'studentName': student['name'],
+          'teacherId': user.uid,
+          'date': dateStr,
+          'status': status,
+          'remarks': remarks,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Attendance saved successfully'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save attendance: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 }
 

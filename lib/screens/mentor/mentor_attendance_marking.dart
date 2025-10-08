@@ -385,12 +385,17 @@ class _MentorAttendanceMarkingScreenState
         final attendance = AttendanceModel(
           id: attendanceRef.id,
           studentId: student.id,
+          studentName: student.name,
+          teacherId: user.uid,
+          date: _selectedDate,
+          status: (_attendanceStatus[student.id] ?? false)
+              ? 'Present'
+              : 'Absent',
           subjectId: _selectedCourse!,
           subjectName: course.courseName,
-          date: _selectedDate,
           isPresent: _attendanceStatus[student.id] ?? false,
-          teacherId: user.uid,
           createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         );
 
         batch.set(attendanceRef, attendance.toMap());

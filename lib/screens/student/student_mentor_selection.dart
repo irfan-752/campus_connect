@@ -837,16 +837,10 @@ class _StudentMentorSelectionScreenState
 
     if (existingChat.isNotEmpty) {
       // Open existing chat
-      final chatRoom = ChatRoom.fromMap(
-        existingChat.first.data(),
-        existingChat.first.id,
-      );
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => ChatRoomScreen(chatRoom: chatRoom),
-          ),
+          MaterialPageRoute(builder: (context) => const StudentChatScreen()),
         );
       }
     } else {
@@ -866,31 +860,13 @@ class _StudentMentorSelectionScreenState
         isActive: true,
       );
 
-      final docRef = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('chat_rooms')
           .add(chatRoom.toMap());
-
-      // Update the chat room with the generated ID
-      final updatedChatRoom = ChatRoom(
-        id: docRef.id,
-        name: mentor.name,
-        description: 'Direct chat with ${mentor.name}',
-        type: 'Direct',
-        participants: [user.uid, mentor.userId],
-        avatarUrl: mentor.avatarUrl,
-        createdBy: user.uid,
-        createdAt: now,
-        lastMessageAt: now,
-        lastMessage: null,
-        isActive: true,
-      );
-
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => ChatRoomScreen(chatRoom: updatedChatRoom),
-          ),
+          MaterialPageRoute(builder: (context) => const StudentChatScreen()),
         );
       }
     }

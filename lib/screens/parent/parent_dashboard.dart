@@ -425,9 +425,7 @@ class ParentDashboard extends StatelessWidget {
           stream: FirebaseFirestore.instance
               .collection('notices')
               .where('isActive', isEqualTo: true)
-              .where('targetAudience', arrayContains: 'Parent')
               .orderBy('createdAt', descending: true)
-              .limit(3)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -435,6 +433,50 @@ class ParentDashboard extends StatelessWidget {
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              print('DEBUG PARENT: No notices found in Firestore');
+              return const EmptyStateWidget(
+                title: "No recent notices",
+                subtitle: "Check back later for updates",
+                icon: Icons.campaign,
+              );
+            }
+
+            print(
+              'DEBUG PARENT: Found ${snapshot.data!.docs.length} notices in Firestore',
+            );
+
+            // Filter notices by target audience and limit to 3
+            final filteredNotices = snapshot.data!.docs
+                .where((doc) {
+                  final notice = NoticeModel.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  );
+
+                  // Debug logging
+                  print(
+                    'DEBUG PARENT: Notice - Title: ${notice.title}, Author: ${notice.authorName}, Target: ${notice.targetAudience}',
+                  );
+
+                  // Show notices that are either for 'All' or specifically for 'Parent'
+                  final shouldShow =
+                      notice.targetAudience.isEmpty ||
+                      notice.targetAudience.contains('All') ||
+                      notice.targetAudience.contains('Parent');
+
+                  print(
+                    'DEBUG PARENT: Should show notice "${notice.title}": $shouldShow',
+                  );
+                  return shouldShow;
+                })
+                .take(3)
+                .toList();
+
+            print(
+              'DEBUG PARENT: After filtering, ${filteredNotices.length} notices remain',
+            );
+
+            if (filteredNotices.isEmpty) {
               return const EmptyStateWidget(
                 title: "No recent notices",
                 subtitle: "Check back later for updates",
@@ -443,7 +485,7 @@ class ParentDashboard extends StatelessWidget {
             }
 
             return Column(
-              children: snapshot.data!.docs.map((doc) {
+              children: filteredNotices.map((doc) {
                 final notice = NoticeModel.fromMap(
                   doc.data() as Map<String, dynamic>,
                   doc.id,
