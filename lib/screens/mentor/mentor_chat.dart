@@ -180,7 +180,6 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
                   arrayContains: FirebaseAuth.instance.currentUser!.uid,
                 )
                 .where('studentId', isEqualTo: _selectedStudentId)
-                
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -198,6 +197,17 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
               }
 
               final messages = snapshot.data!.docs;
+
+              // Auto-scroll to latest after frame paints
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
               return ListView.builder(
                 controller: _scrollController,
                 reverse: true,
@@ -216,8 +226,6 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
             },
           ),
         ),
-
-        // Message input
         Container(
           padding: const EdgeInsets.all(16),
           decoration: const BoxDecoration(
@@ -256,7 +264,9 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  onPressed: _sendMessage,
+                  onPressed: _messageController.text.trim().isEmpty
+                      ? null
+                      : _sendMessage,
                   icon: const Icon(Icons.send, color: Colors.white, size: 20),
                   constraints: const BoxConstraints(
                     minWidth: 48,
@@ -330,11 +340,9 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        DateFormat('hh:mm a').format(
-                          DateTime.fromMillisecondsSinceEpoch(
-                            message['timestamp'] ?? 0,
-                          ),
-                        ),
+                        DateFormat(
+                          'hh:mm a',
+                        ).format(_toDateTime(message['timestamp'])),
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: isMe
@@ -365,6 +373,17 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
     );
   }
 
+  DateTime _toDateTime(dynamic ts) {
+    if (ts == null) return DateTime.now();
+    if (ts is Timestamp) return ts.toDate();
+    if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
+    if (ts is String) {
+      final parsed = int.tryParse(ts);
+      if (parsed != null) return DateTime.fromMillisecondsSinceEpoch(parsed);
+    }
+    return DateTime.now();
+  }
+
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
@@ -374,12 +393,12 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
     try {
       await FirebaseFirestore.instance.collection('chats').add({
         'senderId': user.uid,
-        'senderName': user.displayName ?? 'Teacher',
+        'senderName': user.displayName ?? 'Mentor',
         'studentId': _selectedStudentId,
         'text': _messageController.text.trim(),
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'timestamp': FieldValue.serverTimestamp(),
         'participants': [user.uid, _selectedStudentId!],
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
       _messageController.clear();
