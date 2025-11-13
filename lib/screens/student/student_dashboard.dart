@@ -310,7 +310,7 @@ class StudentDashboard extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // Navigate to all notices
+                Navigator.pushNamed(context, '/student/notices');
               },
               child: Text(
                 "View All",
@@ -427,7 +427,7 @@ class StudentDashboard extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // Navigate to all events
+                Navigator.pushNamed(context, '/student/events');
               },
               child: Text(
                 "View All",
@@ -530,7 +530,7 @@ class StudentDashboard extends StatelessWidget {
         const SizedBox(height: AppTheme.spacingM),
         ResponsiveGrid(
           mobileColumns: 2,
-          tabletColumns: 2,
+          tabletColumns: 4,
           desktopColumns: 4,
           childAspectRatio: ResponsiveHelper.responsiveValue(
             context,
@@ -555,38 +555,74 @@ class StudentDashboard extends StatelessWidget {
           children: [
             _buildActionCard(
               context,
-              "Find Mentor",
-              Icons.person_search,
+              "Resume Builder",
+              Icons.description,
               AppTheme.primaryColor,
               () {
-                // Navigate to mentor search
+                Navigator.pushNamed(context, '/student/resume-builder');
               },
             ),
             _buildActionCard(
               context,
-              "Submit Feedback",
-              Icons.feedback,
-              AppTheme.warningColor,
-              () {
-                // Navigate to feedback
-              },
-            ),
-            _buildActionCard(
-              context,
-              "Join Discussion",
-              Icons.forum,
-              AppTheme.successColor,
-              () {
-                // Navigate to discussions
-              },
-            ),
-            _buildActionCard(
-              context,
-              "Calculate CGPA",
-              Icons.calculate,
+              "Library",
+              Icons.library_books,
               AppTheme.accentColor,
               () {
-                // Navigate to CGPA calculator
+                Navigator.pushNamed(context, '/student/library');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Placements",
+              Icons.work,
+              AppTheme.successColor,
+              () {
+                Navigator.pushNamed(context, '/student/placements');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Marketplace",
+              Icons.store,
+              AppTheme.warningColor,
+              () {
+                Navigator.pushNamed(context, '/student/marketplace');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Clubs",
+              Icons.group,
+              AppTheme.primaryColor,
+              () {
+                Navigator.pushNamed(context, '/student/clubs');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Alumni",
+              Icons.school,
+              AppTheme.accentColor,
+              () {
+                Navigator.pushNamed(context, '/student/alumni');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Career Guide",
+              Icons.trending_up,
+              AppTheme.successColor,
+              () {
+                Navigator.pushNamed(context, '/student/career-guidance');
+              },
+            ),
+            _buildActionCard(
+              context,
+              "Peer Groups",
+              Icons.people,
+              AppTheme.warningColor,
+              () {
+                Navigator.pushNamed(context, '/student/peer-groups');
               },
             ),
           ],
