@@ -374,7 +374,7 @@ class _MentorChatScreenState extends State<MentorChatScreen> {
   }
 
   DateTime _toDateTime(dynamic ts) {
-    if (ts == null) return DateTime.now();
+    if (ts == null) return DateTime.now(); 
     if (ts is Timestamp) return ts.toDate();
     if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
     if (ts is String) {

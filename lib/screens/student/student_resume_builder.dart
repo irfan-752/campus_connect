@@ -1,0 +1,523 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/custom_app_bar.dart';
+import '../../widgets/custom_card.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/loading_widget.dart';
+import '../../models/resume_model.dart';
+import '../../widgets/responsive_wrapper.dart';
+
+class StudentResumeBuilderScreen extends StatefulWidget {
+  const StudentResumeBuilderScreen({super.key});
+
+  @override
+  State<StudentResumeBuilderScreen> createState() =>
+      _StudentResumeBuilderScreenState();
+}
+
+class _StudentResumeBuilderScreenState
+    extends State<StudentResumeBuilderScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _linkedInController = TextEditingController();
+  final _githubController = TextEditingController();
+  final _portfolioController = TextEditingController();
+  final _summaryController = TextEditingController();
+
+  List<Education> _education = [];
+  List<Experience> _experience = [];
+  List<Skill> _skills = [];
+  List<Project> _projects = [];
+  List<String> _certifications = [];
+  List<String> _languages = [];
+  String _selectedTemplate = 'default';
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResume();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _linkedInController.dispose();
+    _githubController.dispose();
+    _portfolioController.dispose();
+    _summaryController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadResume() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('resumes')
+          .where('studentId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final resume = ResumeModel.fromMap(
+          snapshot.docs.first.data(),
+          snapshot.docs.first.id,
+        );
+        _nameController.text = resume.personalInfo.fullName;
+        _emailController.text = resume.personalInfo.email;
+        _phoneController.text = resume.personalInfo.phone ?? '';
+        _addressController.text = resume.personalInfo.address ?? '';
+        _linkedInController.text = resume.personalInfo.linkedIn ?? '';
+        _githubController.text = resume.personalInfo.github ?? '';
+        _portfolioController.text = resume.personalInfo.portfolio ?? '';
+        _summaryController.text = resume.summary ?? '';
+        _education = resume.education;
+        _experience = resume.experience;
+        _skills = resume.skills;
+        _projects = resume.projects;
+        _certifications = resume.certifications;
+        _languages = resume.languages;
+        _selectedTemplate = resume.templateId;
+      } else {
+        // Load from student profile
+        final studentDoc = await FirebaseFirestore.instance
+            .collection('students')
+            .doc(user.uid)
+            .get();
+        if (studentDoc.exists) {
+          final data = studentDoc.data()!;
+          _nameController.text = data['name'] ?? '';
+          _emailController.text = data['email'] ?? '';
+        }
+      }
+    } catch (e) {
+      print('Error loading resume: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _saveResume() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final personalInfo = PersonalInfo(
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        address: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
+        linkedIn: _linkedInController.text.trim().isEmpty
+            ? null
+            : _linkedInController.text.trim(),
+        github: _githubController.text.trim().isEmpty
+            ? null
+            : _githubController.text.trim(),
+        portfolio: _portfolioController.text.trim().isEmpty
+            ? null
+            : _portfolioController.text.trim(),
+      );
+
+      final resume = ResumeModel(
+        id: '',
+        studentId: user.uid,
+        personalInfo: personalInfo,
+        education: _education,
+        experience: _experience,
+        skills: _skills,
+        projects: _projects,
+        certifications: _certifications,
+        languages: _languages,
+        summary: _summaryController.text.trim().isEmpty
+            ? null
+            : _summaryController.text.trim(),
+        templateId: _selectedTemplate,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Check if resume exists
+      final existing = await FirebaseFirestore.instance
+          .collection('resumes')
+          .where('studentId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('resumes')
+            .doc(existing.docs.first.id)
+            .update(resume.toMap());
+      } else {
+        await FirebaseFirestore.instance
+            .collection('resumes')
+            .add(resume.toMap());
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Resume saved successfully'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving resume: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: const CustomAppBar(title: 'Resume Builder'),
+      body: _loading && _education.isEmpty
+          ? const LoadingWidget(message: 'Loading resume...')
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              child: ResponsiveWrapper(
+                centerContent: true,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPersonalInfoSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildEducationSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildExperienceSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildSkillsSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildProjectsSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildAdditionalSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _buildTemplateSection(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      CustomButton(
+                        text: 'Save Resume',
+                        onPressed: _saveResume,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildPersonalInfoSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Personal Information',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Full Name'),
+            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(labelText: 'Email'),
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _phoneController,
+            decoration: const InputDecoration(labelText: 'Phone'),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _addressController,
+            decoration: const InputDecoration(labelText: 'Address'),
+            maxLines: 2,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _linkedInController,
+            decoration: const InputDecoration(labelText: 'LinkedIn URL'),
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _githubController,
+            decoration: const InputDecoration(labelText: 'GitHub URL'),
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _portfolioController,
+            decoration: const InputDecoration(labelText: 'Portfolio URL'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEducationSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Education',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => _showEducationDialog(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          ..._education.asMap().entries.map((entry) {
+            final edu = entry.value;
+            return ListTile(
+              title: Text(edu.degree),
+              subtitle: Text('${edu.institution} • ${edu.field}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  setState(() => _education.removeAt(entry.key));
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExperienceSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Experience',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => _showExperienceDialog(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          ..._experience.asMap().entries.map((entry) {
+            final exp = entry.value;
+            return ListTile(
+              title: Text(exp.position),
+              subtitle: Text('${exp.company} • ${exp.startDate ?? ''}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  setState(() => _experience.removeAt(entry.key));
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkillsSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Skills',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => _showSkillDialog(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          Wrap(
+            spacing: AppTheme.spacingS,
+            runSpacing: AppTheme.spacingS,
+            children: _skills.map((skill) {
+              return Chip(
+                label: Text('${skill.name} (${skill.level})'),
+                onDeleted: () {
+                  setState(() => _skills.remove(skill));
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectsSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Projects',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => _showProjectDialog(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          ..._projects.asMap().entries.map((entry) {
+            final proj = entry.value;
+            return ListTile(
+              title: Text(proj.name),
+              subtitle: Text(proj.description ?? ''),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  setState(() => _projects.removeAt(entry.key));
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdditionalSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Additional Information',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          TextFormField(
+            controller: _summaryController,
+            decoration: const InputDecoration(labelText: 'Professional Summary'),
+            maxLines: 5,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Resume Template',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          DropdownButtonFormField<String>(
+            value: _selectedTemplate,
+            decoration: const InputDecoration(labelText: 'Select Template'),
+            items: ['default', 'modern', 'classic', 'creative']
+                .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) setState(() => _selectedTemplate = v);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEducationDialog() {
+    // Implementation for education dialog
+  }
+
+  void _showExperienceDialog() {
+    // Implementation for experience dialog
+  }
+
+  void _showSkillDialog() {
+    // Implementation for skill dialog
+  }
+
+  void _showProjectDialog() {
+    // Implementation for project dialog
+  }
+}
+
