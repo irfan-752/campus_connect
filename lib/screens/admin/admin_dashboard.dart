@@ -302,57 +302,109 @@ class AdminDashboard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppTheme.spacingM),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                "Add User",
-                Icons.person_add,
-                AppTheme.primaryColor,
-                () {
-                  // Navigate to add user
-                },
+        ResponsiveHelper.isMobile(context)
+            ? Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionCard(
+                          "Add User",
+                          Icons.person_add,
+                          AppTheme.primaryColor,
+                          () {
+                            // Navigate to add user
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spacingS),
+                      Expanded(
+                        child: _buildActionCard(
+                          "Create Event",
+                          Icons.event,
+                          AppTheme.successColor,
+                          () {
+                            // Navigate to create event
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacingS),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionCard(
+                          "Post Notice",
+                          Icons.campaign,
+                          AppTheme.warningColor,
+                          () {
+                            // Navigate to post notice
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spacingS),
+                      Expanded(
+                        child: _buildActionCard(
+                          "View Reports",
+                          Icons.analytics,
+                          AppTheme.accentColor,
+                          () {
+                            // Navigate to reports
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildActionCard(
+                      "Add User",
+                      Icons.person_add,
+                      AppTheme.primaryColor,
+                      () {
+                        // Navigate to add user
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingS),
+                  Expanded(
+                    child: _buildActionCard(
+                      "Create Event",
+                      Icons.event,
+                      AppTheme.successColor,
+                      () {
+                        // Navigate to create event
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingS),
+                  Expanded(
+                    child: _buildActionCard(
+                      "Post Notice",
+                      Icons.campaign,
+                      AppTheme.warningColor,
+                      () {
+                        // Navigate to post notice
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingS),
+                  Expanded(
+                    child: _buildActionCard(
+                      "View Reports",
+                      Icons.analytics,
+                      AppTheme.accentColor,
+                      () {
+                        // Navigate to reports
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: AppTheme.spacingS),
-            Expanded(
-              child: _buildActionCard(
-                "Create Event",
-                Icons.event,
-                AppTheme.successColor,
-                () {
-                  // Navigate to create event
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTheme.spacingS),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                "Post Notice",
-                Icons.campaign,
-                AppTheme.warningColor,
-                () {
-                  // Navigate to post notice
-                },
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacingS),
-            Expanded(
-              child: _buildActionCard(
-                "View Reports",
-                Icons.analytics,
-                AppTheme.accentColor,
-                () {
-                  // Navigate to reports
-                },
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }

@@ -12,6 +12,12 @@ import 'admin_notice_management.dart';
 import 'admin_analytics.dart';
 import 'admin_attendance_reporting.dart';
 import 'admin_course_assignments.dart';
+import 'admin_marketplace_monitoring.dart';
+import 'admin_club_monitoring.dart';
+import 'admin_communication_monitoring.dart';
+import 'admin_system_settings.dart';
+import 'admin_audit_logs.dart';
+import 'admin_roles_permissions.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -31,25 +37,28 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const AdminAttendanceReporting(),
     const AdminCourseAssignmentsScreen(),
     const AdminAnalytics(),
+    const AdminMarketplaceMonitoring(),
+    const AdminClubMonitoring(),
+    const AdminCommunicationMonitoring(),
+    const AdminSystemSettings(),
+    const AdminAuditLogs(),
+    const AdminRolesPermissions(),
   ];
 
-  final List<BottomNavigationBarItem> _bottomNavItems = [
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.dashboard),
-      label: 'Dashboard',
-    ),
-    const BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Users'),
-    const BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
-    const BottomNavigationBarItem(icon: Icon(Icons.campaign), label: 'Notices'),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.fact_check),
-      label: 'Attendance',
-    ),
-    const BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Courses'),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.analytics),
-      label: 'Analytics',
-    ),
+  final List<Map<String, dynamic>> _menuItems = [
+    {'title': 'Dashboard', 'icon': Icons.dashboard, 'index': 0},
+    {'title': 'User Management', 'icon': Icons.group, 'index': 1},
+    {'title': 'Event Management', 'icon': Icons.event, 'index': 2},
+    {'title': 'Notice Management', 'icon': Icons.campaign, 'index': 3},
+    {'title': 'Attendance Reporting', 'icon': Icons.fact_check, 'index': 4},
+    {'title': 'Course Assignments', 'icon': Icons.school, 'index': 5},
+    {'title': 'Analytics & Reports', 'icon': Icons.analytics, 'index': 6},
+    {'title': 'Marketplace Monitoring', 'icon': Icons.store, 'index': 7},
+    {'title': 'Club Monitoring', 'icon': Icons.group_work, 'index': 8},
+    {'title': 'Communication Monitoring', 'icon': Icons.forum, 'index': 9},
+    {'title': 'System Settings', 'icon': Icons.settings, 'index': 10},
+    {'title': 'Audit Logs', 'icon': Icons.history, 'index': 11},
+    {'title': 'Roles & Permissions', 'icon': Icons.admin_panel_settings, 'index': 12},
   ];
 
   final List<String> _screenTitles = [
@@ -60,6 +69,12 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     'Attendance Reporting',
     'Course Assignments',
     'Analytics & Reports',
+    'Marketplace Monitoring',
+    'Club Monitoring',
+    'Communication Monitoring',
+    'System Settings',
+    'Audit Logs',
+    'Roles & Permissions',
   ];
 
   @override
@@ -76,35 +91,124 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navigate to settings
+              setState(() => _currentIndex = 10); // System Settings
             },
           ),
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
+      drawer: _buildDrawer(),
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: _bottomNavItems,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppTheme.primaryColor,
-        unselectedItemColor: AppTheme.secondaryTextColor,
-        selectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 12,
-          fontWeight: FontWeight.normal,
-        ),
-        elevation: 8,
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.admin_panel_settings,
+                  color: Colors.white,
+                  size: 48,
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+                Text(
+                  'Admin Panel',
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Campus Connect',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildDrawerSection('Core Management', [
+            _menuItems[0], // Dashboard
+            _menuItems[1], // User Management
+            _menuItems[2], // Event Management
+            _menuItems[3], // Notice Management
+            _menuItems[4], // Attendance Reporting
+            _menuItems[5], // Course Assignments
+          ]),
+          const Divider(),
+          _buildDrawerSection('Monitoring', [
+            _menuItems[7], // Marketplace Monitoring
+            _menuItems[8], // Club Monitoring
+            _menuItems[9], // Communication Monitoring
+          ]),
+          const Divider(),
+          _buildDrawerSection('System', [
+            _menuItems[6], // Analytics
+            _menuItems[10], // System Settings
+            _menuItems[11], // Audit Logs
+            _menuItems[12], // Roles & Permissions
+          ]),
+        ],
       ),
+    );
+  }
+
+  Widget _buildDrawerSection(String title, List<Map<String, dynamic>> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ),
+        ...items.map((item) {
+          final isSelected = _currentIndex == item['index'];
+          return ListTile(
+            leading: Icon(
+              item['icon'] as IconData,
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : AppTheme.secondaryTextColor,
+            ),
+            title: Text(
+              item['title'] as String,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : AppTheme.primaryTextColor,
+              ),
+            ),
+            selected: isSelected,
+            selectedTileColor: AppTheme.primaryColor.withOpacity(0.1),
+            onTap: () {
+              setState(() {
+                _currentIndex = item['index'] as int;
+              });
+              Navigator.pop(context);
+            },
+          );
+        }).toList(),
+      ],
     );
   }
 
