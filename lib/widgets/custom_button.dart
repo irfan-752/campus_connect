@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_theme.dart';
 
-class CustomButton extends StatelessWidget {
+class CustomButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -27,13 +27,61 @@ class CustomButton extends StatelessWidget {
   });
 
   @override
+  State<CustomButton> createState() => _CustomButtonState();
+}
+
+class _CustomButtonState extends State<CustomButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _elevationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _elevationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    if (widget.onPressed != null && !widget.isLoading) {
+      _controller.forward();
+    }
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    if (widget.onPressed != null && !widget.isLoading) {
+      _controller.reverse();
+      Future.delayed(const Duration(milliseconds: 100), widget.onPressed!);
+    }
+  }
+
+  void _handleTapCancel() {
+    _controller.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final buttonColor = color ?? _getButtonColor();
-    final foregroundColor = textColor ?? _getTextColor();
+    final buttonColor = widget.color ?? _getButtonColor();
+    final foregroundColor = widget.textColor ?? _getTextColor();
     final padding = _getPadding();
     final textStyle = _getTextStyle(context);
 
-    Widget buttonChild = isLoading
+    Widget buttonChild = widget.isLoading
         ? SizedBox(
             width: 20,
             height: 20,
@@ -45,37 +93,43 @@ class CustomButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) ...[
-                Icon(icon, size: _getIconSize()),
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: _getIconSize()),
                 const SizedBox(width: AppTheme.spacingS),
               ],
-              Text(text, style: textStyle),
+              Text(widget.text, style: textStyle),
             ],
           );
 
     Widget button;
-    switch (type) {
+    switch (widget.type) {
       case ButtonType.primary:
-        button = ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: buttonColor,
-            foregroundColor: foregroundColor,
-            padding: padding,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusM),
-            ),
-            elevation: 2,
-          ),
-          child: buttonChild,
+        button = AnimatedBuilder(
+          animation: _elevationAnimation,
+          builder: (context, child) {
+            return ElevatedButton(
+              onPressed: widget.isLoading ? null : widget.onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor,
+                foregroundColor: foregroundColor,
+                padding: padding,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                elevation: 2 + _elevationAnimation.value * 4,
+                shadowColor: buttonColor.withOpacity(0.3),
+              ),
+              child: buttonChild,
+            );
+          },
         );
         break;
       case ButtonType.secondary:
         button = OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: widget.isLoading ? null : widget.onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: buttonColor,
-            side: BorderSide(color: buttonColor),
+            side: BorderSide(color: buttonColor, width: 2),
             padding: padding,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusM),
@@ -86,7 +140,7 @@ class CustomButton extends StatelessWidget {
         break;
       case ButtonType.text:
         button = TextButton(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: widget.isLoading ? null : widget.onPressed,
           style: TextButton.styleFrom(
             foregroundColor: buttonColor,
             padding: padding,
@@ -99,15 +153,25 @@ class CustomButton extends StatelessWidget {
         break;
     }
 
-    if (width != null) {
-      return SizedBox(width: width, child: button);
+    Widget animatedButton = GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: button,
+      ),
+    );
+
+    if (widget.width != null) {
+      return SizedBox(width: widget.width, child: animatedButton);
     }
 
-    return button;
+    return animatedButton;
   }
 
   Color _getButtonColor() {
-    switch (type) {
+    switch (widget.type) {
       case ButtonType.primary:
         return AppTheme.primaryColor;
       case ButtonType.secondary:
@@ -117,7 +181,7 @@ class CustomButton extends StatelessWidget {
   }
 
   Color _getTextColor() {
-    switch (type) {
+    switch (widget.type) {
       case ButtonType.primary:
         return Colors.white;
       case ButtonType.secondary:
@@ -127,7 +191,7 @@ class CustomButton extends StatelessWidget {
   }
 
   EdgeInsetsGeometry _getPadding() {
-    switch (size) {
+    switch (widget.size) {
       case ButtonSize.small:
         return const EdgeInsets.symmetric(
           horizontal: AppTheme.spacingM,
@@ -149,10 +213,10 @@ class CustomButton extends StatelessWidget {
   TextStyle _getTextStyle(BuildContext context) {
     final baseStyle = GoogleFonts.poppins(
       fontWeight: FontWeight.w600,
-      color: textColor ?? _getTextColor(),
+      color: widget.textColor ?? _getTextColor(),
     );
 
-    switch (size) {
+    switch (widget.size) {
       case ButtonSize.small:
         return baseStyle.copyWith(fontSize: 12);
       case ButtonSize.medium:
@@ -163,7 +227,7 @@ class CustomButton extends StatelessWidget {
   }
 
   double _getIconSize() {
-    switch (size) {
+    switch (widget.size) {
       case ButtonSize.small:
         return 16;
       case ButtonSize.medium:

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/animations.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -66,27 +67,37 @@ class StudentDashboard extends StatelessWidget {
               child: SingleChildScrollView(
                 child: ResponsiveWrapper(
                   centerContent: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(context, student),
-                      const SizedBox(height: AppTheme.spacingL),
-                      _buildQuickStats(context, student),
-                      const SizedBox(height: AppTheme.spacingL),
-                      ResponsiveHelper.isTabletOrDesktop(context)
-                          ? _buildTabletDesktopLayout(
-                              context,
-                              student,
-                              user.uid,
-                            )
-                          : _buildMobileLayout(context, student, user.uid),
-                      // Add bottom padding to prevent overflow
-                      SizedBox(
-                        height:
-                            MediaQuery.of(context).padding.bottom +
-                            AppTheme.spacingXL,
-                      ),
-                    ],
+                  child: AppAnimations.fadeIn(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppAnimations.slideInFromBottom(
+                          child: _buildHeader(context, student),
+                        ),
+                        const SizedBox(height: AppTheme.spacingL),
+                        AppAnimations.slideInFromBottom(
+                          offset: 30,
+                          child: _buildQuickStats(context, student),
+                        ),
+                        const SizedBox(height: AppTheme.spacingL),
+                        AppAnimations.slideInFromBottom(
+                          offset: 40,
+                          child: ResponsiveHelper.isTabletOrDesktop(context)
+                              ? _buildTabletDesktopLayout(
+                                  context,
+                                  student,
+                                  user.uid,
+                                )
+                              : _buildMobileLayout(context, student, user.uid),
+                        ),
+                        // Add bottom padding to prevent overflow
+                        SizedBox(
+                          height:
+                              MediaQuery.of(context).padding.bottom +
+                              AppTheme.spacingXL,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -561,6 +572,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/resume-builder');
               },
+              0,
             ),
             _buildActionCard(
               context,
@@ -570,6 +582,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/library');
               },
+              50,
             ),
             _buildActionCard(
               context,
@@ -579,6 +592,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/placements');
               },
+              100,
             ),
             _buildActionCard(
               context,
@@ -588,6 +602,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/marketplace');
               },
+              150,
             ),
             _buildActionCard(
               context,
@@ -597,6 +612,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/clubs');
               },
+              200,
             ),
             _buildActionCard(
               context,
@@ -606,6 +622,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/alumni');
               },
+              250,
             ),
             _buildActionCard(
               context,
@@ -615,6 +632,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/career-guidance');
               },
+              300,
             ),
             _buildActionCard(
               context,
@@ -624,6 +642,7 @@ class StudentDashboard extends StatelessWidget {
               () {
                 Navigator.pushNamed(context, '/student/peer-groups');
               },
+              350,
             ),
           ],
         ),
@@ -637,31 +656,77 @@ class StudentDashboard extends StatelessWidget {
     IconData icon,
     Color color,
     VoidCallback onTap,
+    int animationDelay,
   ) {
-    return CustomCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppTheme.spacingM),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: AppAnimations.normalDuration + Duration(milliseconds: animationDelay),
+      curve: AppAnimations.defaultCurve,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - value)),
+            child: Transform.scale(
+              scale: 0.9 + (0.1 * value),
+              child: child,
             ),
-            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: AppTheme.spacingS),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.primaryTextColor,
+        );
+      },
+      child: CustomCard(
+        onTap: onTap,
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        child: Column(
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: AppAnimations.slowDuration + Duration(milliseconds: animationDelay),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Transform.rotate(
+                    angle: (1 - value) * 0.5,
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: AppTheme.spacingS),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.primaryTextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

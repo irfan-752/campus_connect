@@ -46,44 +46,44 @@ class RouteHelper {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
-        return MaterialPageRoute(builder: (_) => const CampusSplashScreen());
+        return FadePageRoute(child: const CampusSplashScreen());
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginPage());
+        return ScalePageRoute(child: const LoginPage());
       case register:
-        return MaterialPageRoute(builder: (_) => const RegisterScreen());
+        return SlidePageRoute(child: const RegisterScreen(), direction: AxisDirection.up);
       case studentHome:
-        return MaterialPageRoute(builder: (_) => const StudentHomeScreen());
+        return FadePageRoute(child: const StudentHomeScreen());
       case parentHome:
-        return MaterialPageRoute(builder: (_) => const ParentHomeScreen());
+        return FadePageRoute(child: const ParentHomeScreen());
       case adminHome:
-        return MaterialPageRoute(builder: (_) => const AdminHomeScreen());
+        return FadePageRoute(child: const AdminHomeScreen());
       case mentorHome:
-        return MaterialPageRoute(builder: (_) => const MentorHomeScreen());
+        return SlidePageRoute(child: const MentorHomeScreen());
       case alumniHome:
-        return MaterialPageRoute(builder: (_) => const AlumniMainScreen());
+        return SlidePageRoute(child: const AlumniMainScreen());
       case placementHome:
-        return MaterialPageRoute(builder: (_) => const PlacementMainScreen());
+        return SlidePageRoute(child: const PlacementMainScreen());
       case libraryAdminHome:
-        return MaterialPageRoute(builder: (_) => const LibraryAdminScreen());
+        return SlidePageRoute(child: const LibraryAdminScreen());
       // Student routes
       case studentResumeBuilder:
-        return MaterialPageRoute(builder: (_) => const StudentResumeBuilderScreen());
+        return FadePageRoute(child: const StudentResumeBuilderScreen());
       case studentLibrary:
-        return MaterialPageRoute(builder: (_) => const StudentLibraryScreen());
+        return SlidePageRoute(child: const StudentLibraryScreen());
       case studentPlacements:
-        return MaterialPageRoute(builder: (_) => const StudentPlacementsScreen());
+        return SlidePageRoute(child: const StudentPlacementsScreen());
       case studentMarketplace:
-        return MaterialPageRoute(builder: (_) => const StudentMarketplaceScreen());
+        return SlidePageRoute(child: const StudentMarketplaceScreen());
       case studentClubs:
-        return MaterialPageRoute(builder: (_) => const StudentClubsScreen());
+        return SlidePageRoute(child: const StudentClubsScreen());
       case studentAttendanceAnalytics:
-        return MaterialPageRoute(builder: (_) => const StudentAttendanceAnalyticsScreen());
+        return FadePageRoute(child: const StudentAttendanceAnalyticsScreen());
       case studentPeerGroup:
-        return MaterialPageRoute(builder: (_) => const StudentPeerGroupScreen());
+        return SlidePageRoute(child: const StudentPeerGroupScreen());
       case studentCareerGuidance:
-        return MaterialPageRoute(builder: (_) => const StudentCareerGuidanceScreen());
+        return FadePageRoute(child: const StudentCareerGuidanceScreen());
       case studentAlumni:
-        return MaterialPageRoute(builder: (_) => const AlumniMainScreen());
+        return SlidePageRoute(child: const AlumniMainScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
@@ -129,7 +129,7 @@ class RouteHelper {
   }
 }
 
-// Custom page transition
+// Enhanced slide page transition with fade
 class SlidePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
   final AxisDirection direction;
@@ -159,23 +159,32 @@ class SlidePageRoute<T> extends PageRouteBuilder<T> {
            }
 
            const end = Offset.zero;
-           const curve = Curves.easeInOut;
+           const curve = Curves.easeInOutCubic;
 
-           var tween = Tween(
-             begin: begin,
-             end: end,
-           ).chain(CurveTween(curve: curve));
+           var slideTween = Tween(begin: begin, end: end)
+               .chain(CurveTween(curve: curve));
+           var fadeTween = Tween(begin: 0.0, end: 1.0)
+               .chain(CurveTween(curve: curve));
+           var scaleTween = Tween(begin: 0.95, end: 1.0)
+               .chain(CurveTween(curve: curve));
 
            return SlideTransition(
-             position: animation.drive(tween),
-             child: child,
+             position: animation.drive(slideTween),
+             child: FadeTransition(
+               opacity: animation.drive(fadeTween),
+               child: ScaleTransition(
+                 scale: animation.drive(scaleTween),
+                 child: child,
+               ),
+             ),
            );
          },
-         transitionDuration: const Duration(milliseconds: 300),
+         transitionDuration: const Duration(milliseconds: 400),
+         reverseTransitionDuration: const Duration(milliseconds: 300),
        );
 }
 
-// Fade page transition
+// Enhanced fade page transition with scale
 class FadePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
@@ -184,7 +193,45 @@ class FadePageRoute<T> extends PageRouteBuilder<T> {
         settings: settings,
         pageBuilder: (context, animation, _) => child,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
+          var fadeTween = Tween(begin: 0.0, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeInOutCubic));
+          var scaleTween = Tween(begin: 0.9, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeOutCubic));
+
+          return FadeTransition(
+            opacity: animation.drive(fadeTween),
+            child: ScaleTransition(
+              scale: animation.drive(scaleTween),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
+      );
+}
+
+// Scale and fade transition
+class ScalePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget child;
+
+  ScalePageRoute({required this.child, RouteSettings? settings})
+    : super(
+        settings: settings,
+        pageBuilder: (context, animation, _) => child,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          var scaleTween = Tween(begin: 0.8, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeOutCubic));
+          var fadeTween = Tween(begin: 0.0, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeIn));
+
+          return ScaleTransition(
+            scale: animation.drive(scaleTween),
+            child: FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: child,
+            ),
+          );
         },
         transitionDuration: const Duration(milliseconds: 300),
       );
