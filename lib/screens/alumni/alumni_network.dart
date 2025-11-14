@@ -265,12 +265,29 @@ class _AlumniNetworkScreenState extends State<AlumniNetworkScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('connections').add({
-        'fromUserId': user.uid,
-        'toUserId': alumni.userId,
-        'status': 'pending',
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
+      // Check reverse connection
+      final reverse = await FirebaseFirestore.instance
+          .collection('connections')
+          .where('fromUserId', isEqualTo: alumni.userId)
+          .where('toUserId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (reverse.docs.isNotEmpty) {
+        // Accept existing reverse connection
+        await FirebaseFirestore.instance
+            .collection('connections')
+            .doc(reverse.docs.first.id)
+            .update({'status': 'accepted'});
+      } else {
+        // Create new connection
+        await FirebaseFirestore.instance.collection('connections').add({
+          'fromUserId': user.uid,
+          'toUserId': alumni.userId,
+          'status': 'pending',
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

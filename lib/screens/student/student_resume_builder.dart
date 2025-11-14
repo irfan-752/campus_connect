@@ -321,11 +321,20 @@ class _StudentResumeBuilderScreenState
             return ListTile(
               title: Text(edu.degree),
               subtitle: Text('${edu.institution} • ${edu.field}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  setState(() => _education.removeAt(entry.key));
-                },
+              trailing:               Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEducationDialog(edu, entry.key),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() => _education.removeAt(entry.key));
+                    },
+                  ),
+                ],
               ),
             );
           }),
@@ -361,11 +370,20 @@ class _StudentResumeBuilderScreenState
             return ListTile(
               title: Text(exp.position),
               subtitle: Text('${exp.company} • ${exp.startDate ?? ''}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  setState(() => _experience.removeAt(entry.key));
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showExperienceDialog(exp, entry.key),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() => _experience.removeAt(entry.key));
+                    },
+                  ),
+                ],
               ),
             );
           }),
@@ -440,11 +458,20 @@ class _StudentResumeBuilderScreenState
             return ListTile(
               title: Text(proj.name),
               subtitle: Text(proj.description ?? ''),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  setState(() => _projects.removeAt(entry.key));
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showProjectDialog(proj, entry.key),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() => _projects.removeAt(entry.key));
+                    },
+                  ),
+                ],
               ),
             );
           }),
@@ -504,20 +531,236 @@ class _StudentResumeBuilderScreenState
     );
   }
 
-  void _showEducationDialog() {
-    // Implementation for education dialog
+  void _showEducationDialog([Education? education, int? index]) {
+    final institutionController = TextEditingController(text: education?.institution ?? '');
+    final degreeController = TextEditingController(text: education?.degree ?? '');
+    final fieldController = TextEditingController(text: education?.field ?? '');
+    final startDateController = TextEditingController(text: education?.startDate ?? '');
+    final endDateController = TextEditingController(text: education?.endDate ?? '');
+    final gpaController = TextEditingController(text: education?.gpa?.toString() ?? '');
+    final descriptionController = TextEditingController(text: education?.description ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(education == null ? 'Add Education' : 'Edit Education'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: institutionController, decoration: const InputDecoration(labelText: 'Institution *')),
+              TextField(controller: degreeController, decoration: const InputDecoration(labelText: 'Degree *')),
+              TextField(controller: fieldController, decoration: const InputDecoration(labelText: 'Field *')),
+              TextField(controller: startDateController, decoration: const InputDecoration(labelText: 'Start Date')),
+              TextField(controller: endDateController, decoration: const InputDecoration(labelText: 'End Date')),
+              TextField(controller: gpaController, decoration: const InputDecoration(labelText: 'GPA'), keyboardType: TextInputType.number),
+              TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Description'), maxLines: 3),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (institutionController.text.isNotEmpty &&
+                  degreeController.text.isNotEmpty &&
+                  fieldController.text.isNotEmpty) {
+                final edu = Education(
+                  institution: institutionController.text.trim(),
+                  degree: degreeController.text.trim(),
+                  field: fieldController.text.trim(),
+                  startDate: startDateController.text.trim().isEmpty ? null : startDateController.text.trim(),
+                  endDate: endDateController.text.trim().isEmpty ? null : endDateController.text.trim(),
+                  gpa: gpaController.text.trim().isEmpty ? null : double.tryParse(gpaController.text.trim()),
+                  description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+                );
+                setState(() {
+                  if (index != null) {
+                    _education[index] = edu;
+                  } else {
+                    _education.add(edu);
+                  }
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _showExperienceDialog() {
-    // Implementation for experience dialog
+  void _showExperienceDialog([Experience? experience, int? index]) {
+    final companyController = TextEditingController(text: experience?.company ?? '');
+    final positionController = TextEditingController(text: experience?.position ?? '');
+    final startDateController = TextEditingController(text: experience?.startDate ?? '');
+    final endDateController = TextEditingController(text: experience?.endDate ?? '');
+    final descriptionController = TextEditingController(text: experience?.description ?? '');
+    bool isCurrent = experience?.isCurrent ?? false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(experience == null ? 'Add Experience' : 'Edit Experience'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: companyController, decoration: const InputDecoration(labelText: 'Company *')),
+                TextField(controller: positionController, decoration: const InputDecoration(labelText: 'Position *')),
+                TextField(controller: startDateController, decoration: const InputDecoration(labelText: 'Start Date')),
+                CheckboxListTile(
+                  title: const Text('Current Position'),
+                  value: isCurrent,
+                  onChanged: (v) => setDialogState(() => isCurrent = v ?? false),
+                ),
+                if (!isCurrent)
+                  TextField(controller: endDateController, decoration: const InputDecoration(labelText: 'End Date')),
+                TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Description'), maxLines: 3),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (companyController.text.isNotEmpty && positionController.text.isNotEmpty) {
+                  final exp = Experience(
+                    company: companyController.text.trim(),
+                    position: positionController.text.trim(),
+                    startDate: startDateController.text.trim().isEmpty ? null : startDateController.text.trim(),
+                    endDate: isCurrent ? null : (endDateController.text.trim().isEmpty ? null : endDateController.text.trim()),
+                    isCurrent: isCurrent,
+                    description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+                  );
+                  setState(() {
+                    if (index != null) {
+                      _experience[index] = exp;
+                    } else {
+                      _experience.add(exp);
+                    }
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSkillDialog() {
-    // Implementation for skill dialog
+    final nameController = TextEditingController();
+    String level = 'intermediate';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Skill'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Skill Name *')),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: level,
+                decoration: const InputDecoration(labelText: 'Level'),
+                items: ['beginner', 'intermediate', 'advanced', 'expert']
+                    .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => level = v ?? 'intermediate'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  setState(() {
+                    _skills.add(Skill(name: nameController.text.trim(), level: level));
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _showProjectDialog() {
-    // Implementation for project dialog
+  void _showProjectDialog([Project? project, int? index]) {
+    final nameController = TextEditingController(text: project?.name ?? '');
+    final descriptionController = TextEditingController(text: project?.description ?? '');
+    final technologiesController = TextEditingController(text: project?.technologies ?? '');
+    final urlController = TextEditingController(text: project?.url ?? '');
+    final startDateController = TextEditingController(text: project?.startDate ?? '');
+    final endDateController = TextEditingController(text: project?.endDate ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(project == null ? 'Add Project' : 'Edit Project'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Project Name *')),
+              TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Description'), maxLines: 3),
+              TextField(controller: technologiesController, decoration: const InputDecoration(labelText: 'Technologies')),
+              TextField(controller: urlController, decoration: const InputDecoration(labelText: 'URL'), keyboardType: TextInputType.url),
+              TextField(controller: startDateController, decoration: const InputDecoration(labelText: 'Start Date')),
+              TextField(controller: endDateController, decoration: const InputDecoration(labelText: 'End Date')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                final proj = Project(
+                  name: nameController.text.trim(),
+                  description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+                  technologies: technologiesController.text.trim().isEmpty ? null : technologiesController.text.trim(),
+                  url: urlController.text.trim().isEmpty ? null : urlController.text.trim(),
+                  startDate: startDateController.text.trim().isEmpty ? null : startDateController.text.trim(),
+                  endDate: endDateController.text.trim().isEmpty ? null : endDateController.text.trim(),
+                );
+                setState(() {
+                  if (index != null) {
+                    _projects[index] = proj;
+                  } else {
+                    _projects.add(proj);
+                  }
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

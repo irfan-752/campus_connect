@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
-import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 
@@ -29,6 +28,7 @@ class _AlumniJobPostingScreenState extends State<AlumniJobPostingScreen> {
   DateTime? _deadline;
   List<String> _selectedDepartments = [];
   bool _loading = false;
+  String? _editingJobId;
 
   @override
   void dispose() {
@@ -89,9 +89,16 @@ class _AlumniJobPostingScreenState extends State<AlumniJobPostingScreen> {
         if (max != null) jobData['salaryMax'] = max;
       }
 
-      await FirebaseFirestore.instance
-          .collection('job_postings')
-          .add(jobData);
+      if (_editingJobId != null) {
+        await FirebaseFirestore.instance
+            .collection('job_postings')
+            .doc(_editingJobId)
+            .update(jobData);
+      } else {
+        await FirebaseFirestore.instance
+            .collection('job_postings')
+            .add(jobData);
+      }
 
       // Clear form
       _formKey.currentState!.reset();
@@ -105,6 +112,7 @@ class _AlumniJobPostingScreenState extends State<AlumniJobPostingScreen> {
       _applicationLinkController.clear();
       _deadline = null;
       _selectedDepartments = [];
+      _editingJobId = null;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,11 +137,164 @@ class _AlumniJobPostingScreenState extends State<AlumniJobPostingScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadMyJobs();
+  }
+
+  Future<void> _loadMyJobs() async {
+    // This will be used when editing
+  }
+
+  Future<void> _deleteJob(String jobId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Job'),
+        content: const Text('Are you sure you want to delete this job posting?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('job_postings').doc(jobId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Job deleted successfully'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: const CustomAppBar(title: 'Post Job'),
-      body: SingleChildScrollView(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppBar(
+          title: Text(
+            _editingJobId == null ? 'Post Job' : 'Edit Job',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.primaryTextColor,
+          elevation: 0,
+          bottom: TabBar(
+            labelColor: AppTheme.primaryColor,
+            unselectedLabelColor: AppTheme.secondaryTextColor,
+            tabs: const [
+              Tab(text: 'Create/Edit'),
+              Tab(text: 'My Jobs'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildJobForm(),
+            _buildMyJobsList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyJobsList() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Center(child: Text('Not authenticated'));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('job_postings')
+          .where('postedBy', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text('No jobs posted yet'),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            return CustomCard(
+              margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+              child: ListTile(
+                title: Text(data['title'] ?? ''),
+                subtitle: Text('${data['company'] ?? ''} • ${data['location'] ?? ''}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _editJob(doc.id, data),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: AppTheme.errorColor),
+                      onPressed: () => _deleteJob(doc.id),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _editJob(String jobId, Map<String, dynamic> data) async {
+    setState(() {
+      _editingJobId = jobId;
+      _titleController.text = data['title'] ?? '';
+      _companyController.text = data['company'] ?? '';
+      _locationController.text = data['location'] ?? '';
+      _descriptionController.text = data['description'] ?? '';
+      _requirementsController.text = (data['requirements'] as List?)?.join('\n') ?? '';
+      _salaryMinController.text = data['salaryMin']?.toString() ?? '';
+      _salaryMaxController.text = data['salaryMax']?.toString() ?? '';
+      _applicationLinkController.text = data['applicationLink'] ?? '';
+      _jobType = data['jobType'] ?? 'full-time';
+      if (data['applicationDeadline'] != null) {
+        _deadline = DateTime.fromMillisecondsSinceEpoch(data['applicationDeadline']);
+      }
+    });
+  }
+
+  Widget _buildJobForm() {
+    return SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Form(
           key: _formKey,
@@ -249,7 +410,6 @@ class _AlumniJobPostingScreenState extends State<AlumniJobPostingScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 }
