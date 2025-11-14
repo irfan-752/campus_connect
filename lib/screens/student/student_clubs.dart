@@ -8,6 +8,7 @@ import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/club_model.dart';
 
 class StudentClubsScreen extends StatefulWidget {
@@ -112,28 +113,46 @@ class _StudentClubsScreenState extends State<StudentClubsScreen> {
                 }).toList();
               }
 
-              final isTablet = ResponsiveHelper.isTablet(context);
-              final isDesktop = ResponsiveHelper.isDesktop(context);
-              final crossAxisCount = isDesktop ? 3 : (isTablet ? 2 : 1);
-
-              if (crossAxisCount == 1) {
+              if (ResponsiveHelper.isMobile(context)) {
                 return ListView.builder(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  padding: EdgeInsets.all(
+                    ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: AppTheme.spacingM,
+                      tablet: AppTheme.spacingL,
+                      desktop: AppTheme.spacingXL,
+                    ),
+                  ),
                   itemCount: clubs.length,
                   itemBuilder: (context, index) => _buildClubCard(clubs[index]),
                 );
               }
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: AppTheme.spacingM,
-                  crossAxisSpacing: AppTheme.spacingM,
-                  childAspectRatio: 0.8,
+              return ResponsiveGrid(
+                mobileColumns: 1,
+                tabletColumns: 2,
+                desktopColumns: 3,
+                childAspectRatio: ResponsiveHelper.responsiveValue(
+                  context,
+                  mobile: 0.8,
+                  tablet: 0.85,
+                  desktop: 0.9,
                 ),
-                itemCount: clubs.length,
-                itemBuilder: (context, index) => _buildClubCard(clubs[index]),
+                crossAxisSpacing: ResponsiveHelper.responsiveValue(
+                  context,
+                  mobile: AppTheme.spacingS,
+                  tablet: AppTheme.spacingM,
+                  desktop: AppTheme.spacingL,
+                ),
+                mainAxisSpacing: ResponsiveHelper.responsiveValue(
+                  context,
+                  mobile: AppTheme.spacingS,
+                  tablet: AppTheme.spacingM,
+                  desktop: AppTheme.spacingL,
+                ),
+                shrinkWrap: false,
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: clubs.map((club) => _buildClubCard(club)).toList(),
               );
             },
           ),
@@ -144,7 +163,14 @@ class _StudentClubsScreenState extends State<StudentClubsScreen> {
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -279,37 +305,46 @@ class _StudentClubsScreenState extends State<StudentClubsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Center(child: Text('Not authenticated'));
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('clubs')
-          .where('memberIds', arrayContains: user.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget();
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('clubs')
+            .where('memberIds', arrayContains: user.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget();
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const EmptyStateWidget(
-            title: 'No clubs joined',
-            subtitle: 'Browse and join clubs to see them here',
-            icon: Icons.group,
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const EmptyStateWidget(
+              title: 'No clubs joined',
+              subtitle: 'Browse and join clubs to see them here',
+              icon: Icons.group,
+            );
+          }
+
+          final clubs = snapshot.data!.docs
+              .map((doc) => ClubModel.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  ))
+              .toList();
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
+            itemCount: clubs.length,
+            itemBuilder: (context, index) => _buildMyClubCard(clubs[index]),
           );
-        }
-
-        final clubs = snapshot.data!.docs
-            .map((doc) => ClubModel.fromMap(
-                  doc.data() as Map<String, dynamic>,
-                  doc.id,
-                ))
-            .toList();
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          itemCount: clubs.length,
-          itemBuilder: (context, index) => _buildMyClubCard(clubs[index]),
-        );
-      },
+        },
+      ),
     );
   }
 

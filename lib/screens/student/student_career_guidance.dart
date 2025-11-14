@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 
 class StudentCareerGuidanceScreen extends StatefulWidget {
   const StudentCareerGuidanceScreen({super.key});
@@ -214,21 +216,51 @@ class _StudentCareerGuidanceScreenState
           ? const LoadingWidget(message: 'Analyzing your profile...')
           : _guidance == null
               ? const Center(child: Text('No guidance available'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildCareerPathCard(),
-                      const SizedBox(height: AppTheme.spacingL),
-                      _buildRecommendationsCard(),
-                      const SizedBox(height: AppTheme.spacingL),
-                      _buildSkillsCard(),
-                      const SizedBox(height: AppTheme.spacingL),
-                      _buildCoursesCard(),
-                      const SizedBox(height: AppTheme.spacingL),
-                      _buildJobSuggestionsCard(),
-                    ],
+              : ResponsiveWrapper(
+                  centerContent: true,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.responsiveValue(
+                        context,
+                        mobile: AppTheme.spacingM,
+                        tablet: AppTheme.spacingL,
+                        desktop: AppTheme.spacingXL,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCareerPathCard(),
+                        SizedBox(height: ResponsiveHelper.responsiveValue(
+                          context,
+                          mobile: AppTheme.spacingL,
+                          tablet: AppTheme.spacingXL,
+                          desktop: AppTheme.spacingXL,
+                        )),
+                        _buildRecommendationsCard(),
+                        SizedBox(height: ResponsiveHelper.responsiveValue(
+                          context,
+                          mobile: AppTheme.spacingL,
+                          tablet: AppTheme.spacingXL,
+                          desktop: AppTheme.spacingXL,
+                        )),
+                        _buildSkillsCard(),
+                        SizedBox(height: ResponsiveHelper.responsiveValue(
+                          context,
+                          mobile: AppTheme.spacingL,
+                          tablet: AppTheme.spacingXL,
+                          desktop: AppTheme.spacingXL,
+                        )),
+                        _buildCoursesCard(),
+                        SizedBox(height: ResponsiveHelper.responsiveValue(
+                          context,
+                          mobile: AppTheme.spacingL,
+                          tablet: AppTheme.spacingXL,
+                          desktop: AppTheme.spacingXL,
+                        )),
+                        _buildJobSuggestionsCard(),
+                      ],
+                    ),
                   ),
                 ),
     );

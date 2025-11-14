@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/library_model.dart';
 
 class LibraryAdminScreen extends StatefulWidget {
@@ -439,8 +441,16 @@ class _BookManagementScreenState extends State<BookManagementScreen> {
   }
 
   Widget _buildBookForm() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -516,26 +526,35 @@ class _BookManagementScreenState extends State<BookManagementScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildAllBooks() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('books')
-          .where('isActive', isEqualTo: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget();
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('books')
+            .where('isActive', isEqualTo: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget();
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No books in catalog'));
-        }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No books in catalog'));
+          }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -568,6 +587,7 @@ class _BookManagementScreenState extends State<BookManagementScreen> {
           },
         );
       },
+      ),
     );
   }
 
@@ -641,7 +661,8 @@ class BorrowingManagementScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: const CustomAppBar(title: 'Borrowing Management'),
-      body: StreamBuilder<QuerySnapshot>(
+      body: ResponsiveWrapper(
+        child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('borrowings')
             .where('status', isEqualTo: 'borrowed')
@@ -657,7 +678,14 @@ class BorrowingManagementScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final doc = snapshot.data!.docs[index];
@@ -694,6 +722,7 @@ class BorrowingManagementScreen extends StatelessWidget {
             },
           );
         },
+        ),
       ),
     );
   }

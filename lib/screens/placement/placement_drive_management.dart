@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 
 class PlacementDriveManagementScreen extends StatefulWidget {
   const PlacementDriveManagementScreen({super.key});
@@ -181,8 +183,16 @@ class _PlacementDriveManagementScreenState
   }
 
   Widget _buildDriveForm() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -309,26 +319,35 @@ class _PlacementDriveManagementScreenState
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildAllDrives() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('job_postings')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget();
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('job_postings')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget();
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No drives created yet'));
-        }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No drives created yet'));
+          }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -356,6 +375,7 @@ class _PlacementDriveManagementScreenState
           },
         );
       },
+      ),
     );
   }
 

@@ -4,10 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/placement_model.dart';
 
 class StudentPlacementsScreen extends StatefulWidget {
@@ -109,10 +111,19 @@ class _StudentPlacementsScreenState extends State<StudentPlacementsScreen> {
                 }).toList();
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                itemCount: jobs.length,
-                itemBuilder: (context, index) => _buildJobCard(jobs[index]),
+              return ResponsiveWrapper(
+                child: ListView.builder(
+                  padding: EdgeInsets.all(
+                    ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: AppTheme.spacingM,
+                      tablet: AppTheme.spacingL,
+                      desktop: AppTheme.spacingXL,
+                    ),
+                  ),
+                  itemCount: jobs.length,
+                  itemBuilder: (context, index) => _buildJobCard(jobs[index]),
+                ),
               );
             },
           ),
@@ -123,7 +134,14 @@ class _StudentPlacementsScreenState extends State<StudentPlacementsScreen> {
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -285,38 +303,47 @@ class _StudentPlacementsScreenState extends State<StudentPlacementsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Center(child: Text('Not authenticated'));
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('job_applications')
-          .where('studentId', isEqualTo: user.uid)
-          .orderBy('appliedAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget();
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('job_applications')
+            .where('studentId', isEqualTo: user.uid)
+            .orderBy('appliedAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget();
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const EmptyStateWidget(
-            title: 'No applications',
-            subtitle: 'Apply for jobs to see them here',
-            icon: Icons.work_outline,
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
-            final application = JobApplicationModel.fromMap(
-              doc.data() as Map<String, dynamic>,
-              doc.id,
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const EmptyStateWidget(
+              title: 'No applications',
+              subtitle: 'Apply for jobs to see them here',
+              icon: Icons.work_outline,
             );
-            return _buildApplicationCard(application);
-          },
-        );
-      },
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final doc = snapshot.data!.docs[index];
+              final application = JobApplicationModel.fromMap(
+                doc.data() as Map<String, dynamic>,
+                doc.id,
+              );
+              return _buildApplicationCard(application);
+            },
+          );
+        },
+      ),
     );
   }
 

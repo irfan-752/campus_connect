@@ -8,6 +8,7 @@ import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/marketplace_model.dart';
 
 class StudentMarketplaceScreen extends StatefulWidget {
@@ -59,70 +60,90 @@ class _StudentMarketplaceScreenState extends State<StudentMarketplaceScreen> {
         children: [
           _buildSearchAndFilter(),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('marketplace_items')
-                  .where('status', isEqualTo: 'available')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingWidget();
-                }
+            child: ResponsiveWrapper(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('marketplace_items')
+                    .where('status', isEqualTo: 'available')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LoadingWidget();
+                  }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const EmptyStateWidget(
-                    title: 'No items available',
-                    subtitle: 'Be the first to list an item!',
-                    icon: Icons.store,
-                  );
-                }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const EmptyStateWidget(
+                      title: 'No items available',
+                      subtitle: 'Be the first to list an item!',
+                      icon: Icons.store,
+                    );
+                  }
 
-                var items = snapshot.data!.docs
-                    .map((doc) => MarketplaceItemModel.fromMap(
-                          doc.data() as Map<String, dynamic>,
-                          doc.id,
-                        ))
-                    .toList();
-
-                if (_selectedCategory != 'All') {
-                  items = items
-                      .where((item) => item.category == _selectedCategory)
+                  var items = snapshot.data!.docs
+                      .map((doc) => MarketplaceItemModel.fromMap(
+                            doc.data() as Map<String, dynamic>,
+                            doc.id,
+                          ))
                       .toList();
-                }
 
-                final query = _searchController.text.toLowerCase();
-                if (query.isNotEmpty) {
-                  items = items.where((item) {
-                    return item.title.toLowerCase().contains(query) ||
-                        item.description.toLowerCase().contains(query);
-                  }).toList();
-                }
+                  if (_selectedCategory != 'All') {
+                    items = items
+                        .where((item) => item.category == _selectedCategory)
+                        .toList();
+                  }
 
-                final isTablet = ResponsiveHelper.isTablet(context);
-                final isDesktop = ResponsiveHelper.isDesktop(context);
-                final crossAxisCount = isDesktop ? 3 : (isTablet ? 2 : 1);
+                  final query = _searchController.text.toLowerCase();
+                  if (query.isNotEmpty) {
+                    items = items.where((item) {
+                      return item.title.toLowerCase().contains(query) ||
+                          item.description.toLowerCase().contains(query);
+                    }).toList();
+                  }
 
-                if (crossAxisCount == 1) {
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(AppTheme.spacingM),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) =>
-                        _buildItemCard(items[index]),
+                  if (ResponsiveHelper.isMobile(context)) {
+                    return ListView.builder(
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.responsiveValue(
+                          context,
+                          mobile: AppTheme.spacingM,
+                          tablet: AppTheme.spacingL,
+                          desktop: AppTheme.spacingXL,
+                        ),
+                      ),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) =>
+                          _buildItemCard(items[index]),
+                    );
+                  }
+
+                  return ResponsiveGrid(
+                    mobileColumns: 1,
+                    tabletColumns: 2,
+                    desktopColumns: 3,
+                    childAspectRatio: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: 0.75,
+                      tablet: 0.8,
+                      desktop: 0.85,
+                    ),
+                    crossAxisSpacing: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: AppTheme.spacingS,
+                      tablet: AppTheme.spacingM,
+                      desktop: AppTheme.spacingL,
+                    ),
+                    mainAxisSpacing: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: AppTheme.spacingS,
+                      tablet: AppTheme.spacingM,
+                      desktop: AppTheme.spacingL,
+                    ),
+                    shrinkWrap: false,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: items.map((item) => _buildItemCard(item)).toList(),
                   );
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: AppTheme.spacingM,
-                    crossAxisSpacing: AppTheme.spacingM,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) => _buildItemCard(items[index]),
-                );
-              },
+                },
+              ),
             ),
           ),
         ],
@@ -132,7 +153,14 @@ class _StudentMarketplaceScreenState extends State<StudentMarketplaceScreen> {
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [

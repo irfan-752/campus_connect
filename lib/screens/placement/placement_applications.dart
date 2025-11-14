@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/placement_model.dart';
 
 class PlacementApplicationsScreen extends StatefulWidget {
@@ -55,40 +57,49 @@ class _PlacementApplicationsScreenState
           ),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('job_applications')
-            .orderBy('appliedAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingWidget();
-          }
+      body: ResponsiveWrapper(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('job_applications')
+              .orderBy('appliedAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LoadingWidget();
+            }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No applications'));
-          }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text('No applications'));
+            }
 
-          var applications = snapshot.data!.docs
-              .map((doc) => JobApplicationModel.fromMap(
-                    doc.data() as Map<String, dynamic>,
-                    doc.id,
-                  ))
-              .toList();
-
-          if (_selectedStatus != 'All') {
-            applications = applications
-                .where((app) => app.status == _selectedStatus)
+            var applications = snapshot.data!.docs
+                .map((doc) => JobApplicationModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ))
                 .toList();
-          }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
+            if (_selectedStatus != 'All') {
+              applications = applications
+                  .where((app) => app.status == _selectedStatus)
+                  .toList();
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(
+                ResponsiveHelper.responsiveValue(
+                  context,
+                  mobile: AppTheme.spacingM,
+                  tablet: AppTheme.spacingL,
+                  desktop: AppTheme.spacingXL,
+                ),
+              ),
             itemCount: applications.length,
             itemBuilder: (context, index) =>
                 _buildApplicationCard(applications[index]),
           );
         },
+        ),
       ),
     );
   }
