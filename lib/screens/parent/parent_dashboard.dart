@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/student_model.dart';
 import '../../models/notice_model.dart';
 import '../../models/event_model.dart';
@@ -21,9 +23,17 @@ class ParentDashboard extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          child: Column(
+        child: ResponsiveWrapper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildWelcomeHeader(user),
@@ -48,6 +58,7 @@ class ParentDashboard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

@@ -3,11 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/alumni_model.dart';
 
 class AlumniNetworkScreen extends StatefulWidget {
@@ -34,53 +36,62 @@ class _AlumniNetworkScreenState extends State<AlumniNetworkScreen> {
         children: [
           _buildSearchBar(),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('alumni')
-                  .where('isVerified', isEqualTo: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingWidget();
-                }
+            child: ResponsiveWrapper(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('alumni')
+                    .where('isVerified', isEqualTo: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LoadingWidget();
+                  }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const EmptyStateWidget(
-                    title: 'No alumni found',
-                    subtitle: 'Check back later',
-                    icon: Icons.people_outline,
-                  );
-                }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const EmptyStateWidget(
+                      title: 'No alumni found',
+                      subtitle: 'Check back later',
+                      icon: Icons.people_outline,
+                    );
+                  }
 
-                var alumni = snapshot.data!.docs
-                    .map(
-                      (doc) => AlumniModel.fromMap(
-                        doc.data() as Map<String, dynamic>,
-                        doc.id,
+                  var alumni = snapshot.data!.docs
+                      .map(
+                        (doc) => AlumniModel.fromMap(
+                          doc.data() as Map<String, dynamic>,
+                          doc.id,
+                        ),
+                      )
+                      .toList();
+
+                  // Filter by search
+                  final query = _searchController.text.toLowerCase();
+                  if (query.isNotEmpty) {
+                    alumni = alumni.where((a) {
+                      return a.name.toLowerCase().contains(query) ||
+                          a.department.toLowerCase().contains(query) ||
+                          (a.currentCompany?.toLowerCase().contains(query) ??
+                              false) ||
+                          (a.currentPosition?.toLowerCase().contains(query) ??
+                              false);
+                    }).toList();
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.responsiveValue(
+                        context,
+                        mobile: AppTheme.spacingM,
+                        tablet: AppTheme.spacingL,
+                        desktop: AppTheme.spacingXL,
                       ),
-                    )
-                    .toList();
-
-                // Filter by search
-                final query = _searchController.text.toLowerCase();
-                if (query.isNotEmpty) {
-                  alumni = alumni.where((a) {
-                    return a.name.toLowerCase().contains(query) ||
-                        a.department.toLowerCase().contains(query) ||
-                        (a.currentCompany?.toLowerCase().contains(query) ??
-                            false) ||
-                        (a.currentPosition?.toLowerCase().contains(query) ??
-                            false);
-                  }).toList();
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
-                  itemCount: alumni.length,
-                  itemBuilder: (context, index) =>
-                      _buildAlumniCard(alumni[index]),
-                );
-              },
+                    ),
+                    itemCount: alumni.length,
+                    itemBuilder: (context, index) =>
+                        _buildAlumniCard(alumni[index]),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -90,7 +101,14 @@ class _AlumniNetworkScreenState extends State<AlumniNetworkScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/user_model.dart';
 import '../../models/event_model.dart';
 import '../../models/notice_model.dart';
@@ -65,7 +67,14 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
 
   Widget _buildPeriodSelector() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -127,8 +136,16 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
   }
 
   Widget _buildOverviewTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,12 +158,21 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
           _buildRecentActivity(),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildUserAnalytics() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -159,12 +185,21 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
           _buildUserEngagement(),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildEventAnalytics() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -177,12 +212,21 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
           _buildEventTrends(),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildEngagementAnalytics() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+    return ResponsiveWrapper(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,6 +238,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
           const SizedBox(height: AppTheme.spacingL),
           _buildPlatformUsage(),
         ],
+      ),
       ),
     );
   }

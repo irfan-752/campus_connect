@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/user_model.dart';
 
 class AdminUserManagement extends StatefulWidget {
@@ -64,7 +66,14 @@ class _AdminUserManagementState extends State<AdminUserManagement>
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -155,24 +164,32 @@ class _AdminUserManagementState extends State<AdminUserManagement>
   }
 
   Widget _buildAllUsers() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _buildUsersStream(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading users...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _buildUsersStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading users...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No users found",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No users found",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -184,31 +201,40 @@ class _AdminUserManagementState extends State<AdminUserManagement>
           },
         );
       },
+      ),
     );
   }
 
   Widget _buildPendingApprovals() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .where('approved', isEqualTo: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading pending approvals...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('approved', isEqualTo: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading pending approvals...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No pending approvals",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No pending approvals",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -220,32 +246,41 @@ class _AdminUserManagementState extends State<AdminUserManagement>
           },
         );
       },
+      ),
     );
   }
 
   Widget _buildUserStatistics() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading statistics...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading statistics...");
+          }
 
-        if (!snapshot.hasData) {
-          return const Center(child: Text("No data available"));
-        }
+          if (!snapshot.hasData) {
+            return const Center(child: Text("No data available"));
+          }
 
-        final users = snapshot.data!.docs.map((doc) {
-          return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-        }).toList();
+          final users = snapshot.data!.docs.map((doc) {
+            return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          }).toList();
 
-        final studentCount = users.where((u) => u.role == 'Student').length;
-        final teacherCount = users.where((u) => u.role == 'Teacher').length;
-        final parentCount = users.where((u) => u.role == 'Parent').length;
-        final pendingCount = users.where((u) => !u.approved).length;
+          final studentCount = users.where((u) => u.role == 'Student').length;
+          final teacherCount = users.where((u) => u.role == 'Teacher').length;
+          final parentCount = users.where((u) => u.role == 'Parent').length;
+          final pendingCount = users.where((u) => !u.approved).length;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
           child: Column(
             children: [
               Row(
@@ -297,6 +332,7 @@ class _AdminUserManagementState extends State<AdminUserManagement>
           ),
         );
       },
+      ),
     );
   }
 

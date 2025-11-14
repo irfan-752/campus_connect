@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/responsive_wrapper.dart';
@@ -15,7 +16,14 @@ class PlacementDashboard extends StatelessWidget {
       backgroundColor: AppTheme.backgroundColor,
       appBar: const CustomAppBar(title: 'Placement Dashboard'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingM),
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsiveValue(
+            context,
+            mobile: AppTheme.spacingM,
+            tablet: AppTheme.spacingL,
+            desktop: AppTheme.spacingXL,
+          ),
+        ),
         child: ResponsiveWrapper(
           centerContent: true,
           child: Column(

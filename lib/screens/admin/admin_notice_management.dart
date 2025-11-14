@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/notice_model.dart';
 
 class AdminNoticeManagement extends StatefulWidget {
@@ -76,7 +78,14 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -205,24 +214,32 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
   }
 
   Widget _buildAllNotices() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _buildNoticesStream(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading notices...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _buildNoticesStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading notices...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No notices found",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No notices found",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -234,32 +251,41 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
           },
         );
       },
+      ),
     );
   }
 
   Widget _buildActiveNotices() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('notices')
-          .where('isActive', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading active notices...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('notices')
+            .where('isActive', isEqualTo: true)
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading active notices...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No active notices",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No active notices",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -271,6 +297,7 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
           },
         );
       },
+      ),
     );
   }
 
@@ -300,60 +327,69 @@ class _AdminNoticeManagementState extends State<AdminNoticeManagement>
             .map((n) => n.readBy.length)
             .fold(0, (a, b) => a + b);
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      "Total Notices",
-                      "$totalNotices",
-                      Icons.campaign,
-                      AppTheme.primaryColor,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingS),
-                  Expanded(
-                    child: _buildStatCard(
-                      "Active",
-                      "$activeNotices",
-                      Icons.visibility,
-                      AppTheme.successColor,
-                    ),
-                  ),
-                ],
+        return ResponsiveWrapper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
               ),
-              const SizedBox(height: AppTheme.spacingS),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      "High Priority",
-                      "$highPriority",
-                      Icons.priority_high,
-                      AppTheme.errorColor,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        "Total Notices",
+                        "$totalNotices",
+                        Icons.campaign,
+                        AppTheme.primaryColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingS),
-                  Expanded(
-                    child: _buildStatCard(
-                      "Total Reads",
-                      "$totalReads",
-                      Icons.visibility,
-                      AppTheme.accentColor,
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: _buildStatCard(
+                        "Active",
+                        "$activeNotices",
+                        Icons.visibility,
+                        AppTheme.successColor,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spacingL),
-              _buildCategoryDistribution(notices),
-              const SizedBox(height: AppTheme.spacingL),
-              _buildPriorityDistribution(notices),
-              const SizedBox(height: AppTheme.spacingL),
-              _buildMostReadNotices(notices),
-            ],
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingS),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        "High Priority",
+                        "$highPriority",
+                        Icons.priority_high,
+                        AppTheme.errorColor,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: _buildStatCard(
+                        "Total Reads",
+                        "$totalReads",
+                        Icons.visibility,
+                        AppTheme.accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingL),
+                _buildCategoryDistribution(notices),
+                const SizedBox(height: AppTheme.spacingL),
+                _buildPriorityDistribution(notices),
+                const SizedBox(height: AppTheme.spacingL),
+                _buildMostReadNotices(notices),
+              ],
+            ),
           ),
         );
       },

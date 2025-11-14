@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/course_assignment_model.dart';
 import '../../models/mentor_model.dart';
 import '../../models/student_model.dart';
@@ -105,13 +107,22 @@ class _AdminCourseAssignmentsScreenState
               subtitle: 'Assign teachers to courses to get started',
               icon: Icons.school,
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
+          : ResponsiveWrapper(
+              child: ListView.builder(
+                padding: EdgeInsets.all(
+                  ResponsiveHelper.responsiveValue(
+                    context,
+                    mobile: AppTheme.spacingM,
+                    tablet: AppTheme.spacingL,
+                    desktop: AppTheme.spacingXL,
+                  ),
+                ),
               itemCount: _assignments.length,
               itemBuilder: (context, index) {
                 final assignment = _assignments[index];
                 return _buildAssignmentCard(assignment);
               },
+            ),
             ),
     );
   }

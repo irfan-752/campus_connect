@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/responsive_wrapper.dart';
 import '../../models/event_model.dart';
 
 class AdminEventManagement extends StatefulWidget {
@@ -72,7 +74,14 @@ class _AdminEventManagementState extends State<AdminEventManagement>
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -163,24 +172,32 @@ class _AdminEventManagementState extends State<AdminEventManagement>
   }
 
   Widget _buildAllEvents() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _buildEventsStream(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading events...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _buildEventsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading events...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No events found",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No events found",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -192,32 +209,41 @@ class _AdminEventManagementState extends State<AdminEventManagement>
           },
         );
       },
+      ),
     );
   }
 
   Widget _buildUpcomingEvents() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('events')
-          .where('startDate', isGreaterThan: Timestamp.now())
-          .orderBy('startDate')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget(message: "Loading upcoming events...");
-        }
+    return ResponsiveWrapper(
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('events')
+            .where('startDate', isGreaterThan: Timestamp.now())
+            .orderBy('startDate')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingWidget(message: "Loading upcoming events...");
+          }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              "No upcoming events",
-              style: TextStyle(color: AppTheme.secondaryTextColor),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No upcoming events",
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -229,6 +255,7 @@ class _AdminEventManagementState extends State<AdminEventManagement>
           },
         );
       },
+      ),
     );
   }
 
@@ -259,58 +286,67 @@ class _AdminEventManagementState extends State<AdminEventManagement>
             .map((e) => e.registeredStudents.length)
             .fold(0, (a, b) => a + b);
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      "Total Events",
-                      "$totalEvents",
-                      Icons.event,
-                      AppTheme.primaryColor,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingS),
-                  Expanded(
-                    child: _buildStatCard(
-                      "Upcoming",
-                      "$upcomingEvents",
-                      Icons.schedule,
-                      AppTheme.warningColor,
-                    ),
-                  ),
-                ],
+        return ResponsiveWrapper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
               ),
-              const SizedBox(height: AppTheme.spacingS),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      "Completed",
-                      "$completedEvents",
-                      Icons.check_circle,
-                      AppTheme.successColor,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        "Total Events",
+                        "$totalEvents",
+                        Icons.event,
+                        AppTheme.primaryColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingS),
-                  Expanded(
-                    child: _buildStatCard(
-                      "Registrations",
-                      "$totalRegistrations",
-                      Icons.people,
-                      AppTheme.accentColor,
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: _buildStatCard(
+                        "Upcoming",
+                        "$upcomingEvents",
+                        Icons.schedule,
+                        AppTheme.warningColor,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spacingL),
-              _buildCategoryDistribution(events),
-              const SizedBox(height: AppTheme.spacingL),
-              _buildPopularEvents(events),
-            ],
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingS),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        "Completed",
+                        "$completedEvents",
+                        Icons.check_circle,
+                        AppTheme.successColor,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: _buildStatCard(
+                        "Registrations",
+                        "$totalRegistrations",
+                        Icons.people,
+                        AppTheme.accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingL),
+                _buildCategoryDistribution(events),
+                const SizedBox(height: AppTheme.spacingL),
+                _buildPopularEvents(events),
+              ],
+            ),
           ),
         );
       },

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/responsive_wrapper.dart';
 
 class AdminAttendanceReporting extends StatefulWidget {
   const AdminAttendanceReporting({super.key});
@@ -33,7 +35,14 @@ class _AdminAttendanceReportingState extends State<AdminAttendanceReporting> {
 
   Widget _buildFilters() {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(
+        ResponsiveHelper.responsiveValue(
+          context,
+          mobile: AppTheme.spacingM,
+          tablet: AppTheme.spacingL,
+          desktop: AppTheme.spacingXL,
+        ),
+      ),
       color: Colors.white,
       child: Column(
         children: [
@@ -146,13 +155,22 @@ class _AdminAttendanceReportingState extends State<AdminAttendanceReporting> {
         }
         final overallPct = total > 0 ? (present / total * 100) : 0.0;
 
-        return ListView(
-          padding: const EdgeInsets.all(AppTheme.spacingM),
-          children: [
-            _buildOverallCard(overallPct, total, present),
-            const SizedBox(height: AppTheme.spacingM),
-            _buildSubjectSummary(subjectAgg),
-          ],
+        return ResponsiveWrapper(
+          child: ListView(
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsiveValue(
+                context,
+                mobile: AppTheme.spacingM,
+                tablet: AppTheme.spacingL,
+                desktop: AppTheme.spacingXL,
+              ),
+            ),
+            children: [
+              _buildOverallCard(overallPct, total, present),
+              const SizedBox(height: AppTheme.spacingM),
+              _buildSubjectSummary(subjectAgg),
+            ],
+          ),
         );
       },
     );
