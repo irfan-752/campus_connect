@@ -6,6 +6,17 @@ import '../login.dart';
 import '../register.dart';
 import '../splash.dart';
 import '../screens/mentor/mentor_main_screen.dart';
+import '../screens/student/student_resume_builder.dart';
+import '../screens/student/student_library.dart';
+import '../screens/student/student_placements.dart';
+import '../screens/student/student_marketplace.dart';
+import '../screens/student/student_clubs.dart';
+import '../screens/student/student_attendance_analytics.dart';
+import '../screens/student/student_peer_group.dart';
+import '../screens/student/student_career_guidance.dart';
+import '../screens/alumni/alumni_main_screen.dart';
+import '../screens/placement/placement_main_screen.dart';
+import '../screens/library/library_admin_screen.dart';
 
 class RouteHelper {
   // Route names
@@ -16,6 +27,20 @@ class RouteHelper {
   static const String parentHome = '/parent-home';
   static const String adminHome = '/admin-home';
   static const String mentorHome = '/mentor-home';
+  static const String alumniHome = '/alumni-home';
+  static const String placementHome = '/placement-home';
+  static const String libraryAdminHome = '/library-admin-home';
+
+  // Student routes
+  static const String studentResumeBuilder = '/student/resume-builder';
+  static const String studentLibrary = '/student/library';
+  static const String studentPlacements = '/student/placements';
+  static const String studentMarketplace = '/student/marketplace';
+  static const String studentClubs = '/student/clubs';
+  static const String studentAttendanceAnalytics = '/student/attendance-analytics';
+  static const String studentPeerGroup = '/student/peer-group';
+  static const String studentCareerGuidance = '/student/career-guidance';
+  static const String studentAlumni = '/student/alumni';
 
   // Generate routes
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -34,6 +59,31 @@ class RouteHelper {
         return MaterialPageRoute(builder: (_) => const AdminHomeScreen());
       case mentorHome:
         return MaterialPageRoute(builder: (_) => const MentorHomeScreen());
+      case alumniHome:
+        return MaterialPageRoute(builder: (_) => const AlumniMainScreen());
+      case placementHome:
+        return MaterialPageRoute(builder: (_) => const PlacementMainScreen());
+      case libraryAdminHome:
+        return MaterialPageRoute(builder: (_) => const LibraryAdminScreen());
+      // Student routes
+      case studentResumeBuilder:
+        return MaterialPageRoute(builder: (_) => const StudentResumeBuilderScreen());
+      case studentLibrary:
+        return MaterialPageRoute(builder: (_) => const StudentLibraryScreen());
+      case studentPlacements:
+        return MaterialPageRoute(builder: (_) => const StudentPlacementsScreen());
+      case studentMarketplace:
+        return MaterialPageRoute(builder: (_) => const StudentMarketplaceScreen());
+      case studentClubs:
+        return MaterialPageRoute(builder: (_) => const StudentClubsScreen());
+      case studentAttendanceAnalytics:
+        return MaterialPageRoute(builder: (_) => const StudentAttendanceAnalyticsScreen());
+      case studentPeerGroup:
+        return MaterialPageRoute(builder: (_) => const StudentPeerGroupScreen());
+      case studentCareerGuidance:
+        return MaterialPageRoute(builder: (_) => const StudentCareerGuidanceScreen());
+      case studentAlumni:
+        return MaterialPageRoute(builder: (_) => const AlumniMainScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
