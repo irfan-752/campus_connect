@@ -5,6 +5,9 @@ import 'alumni_dashboard.dart';
 import 'alumni_job_posting.dart';
 import 'alumni_network.dart';
 import 'alumni_profile.dart';
+import '../placement/placement_drive_management.dart';
+import '../placement/placement_applications.dart';
+import '../placement/placement_analytics.dart';
 
 class AlumniMainScreen extends StatefulWidget {
   const AlumniMainScreen({super.key});
@@ -20,6 +23,9 @@ class _AlumniMainScreenState extends State<AlumniMainScreen> {
     const AlumniDashboard(),
     const AlumniNetworkScreen(),
     const AlumniJobPostingScreen(),
+    const PlacementDriveManagementScreen(),
+    const PlacementApplicationsScreen(),
+    const PlacementAnalyticsScreen(),
     const AlumniProfileScreen(),
   ];
 
@@ -37,6 +43,18 @@ class _AlumniMainScreenState extends State<AlumniMainScreen> {
       label: 'Jobs',
     ),
     const BottomNavigationBarItem(
+      icon: Icon(Icons.event),
+      label: 'Drives',
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.assignment),
+      label: 'Applications',
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.analytics),
+      label: 'Analytics',
+    ),
+    const BottomNavigationBarItem(
       icon: Icon(Icons.person),
       label: 'Profile',
     ),
@@ -46,7 +64,7 @@ class _AlumniMainScreenState extends State<AlumniMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
+        bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -59,14 +77,16 @@ class _AlumniMainScreenState extends State<AlumniMainScreen> {
         selectedItemColor: AppTheme.primaryColor,
         unselectedItemColor: AppTheme.secondaryTextColor,
         selectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
         unselectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: FontWeight.normal,
         ),
         elevation: 8,
+        selectedIconTheme: const IconThemeData(size: 24),
+        unselectedIconTheme: const IconThemeData(size: 22),
       ),
     );
   }

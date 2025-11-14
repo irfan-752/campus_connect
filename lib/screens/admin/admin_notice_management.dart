@@ -1177,7 +1177,7 @@ class _CreateNoticeDialogState extends State<_CreateNoticeDialog> {
     'Holiday',
     'General',
   ];
-  final List<String> _targetAudiences = ['All', 'Student', 'Teacher', 'Parent'];
+  final List<String> _targetAudiences = ['All', 'Student', 'Teacher'];
 
   @override
   void dispose() {

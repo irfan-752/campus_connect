@@ -658,7 +658,6 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
 
         final studentCount = users.where((u) => u.role == 'Student').length;
         final teacherCount = users.where((u) => u.role == 'Teacher').length;
-        final parentCount = users.where((u) => u.role == 'Parent').length;
 
         return CustomCard(
           child: Column(
@@ -682,11 +681,6 @@ class _AdminAnalyticsState extends State<AdminAnalytics>
                 "Teachers",
                 teacherCount,
                 AppTheme.successColor,
-              ),
-              _buildDistributionItem(
-                "Parents",
-                parentCount,
-                AppTheme.warningColor,
               ),
             ],
           ),

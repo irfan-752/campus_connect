@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../student_home.dart';
-import '../parent_home.dart';
 import '../admin_home.dart';
 import '../login.dart';
 import '../register.dart';
@@ -24,7 +23,6 @@ class RouteHelper {
   static const String login = '/login';
   static const String register = '/register';
   static const String studentHome = '/student-home';
-  static const String parentHome = '/parent-home';
   static const String adminHome = '/admin-home';
   static const String mentorHome = '/mentor-home';
   static const String alumniHome = '/alumni-home';
@@ -53,8 +51,6 @@ class RouteHelper {
         return SlidePageRoute(child: const RegisterScreen(), direction: AxisDirection.up);
       case studentHome:
         return FadePageRoute(child: const StudentHomeScreen());
-      case parentHome:
-        return FadePageRoute(child: const ParentHomeScreen());
       case adminHome:
         return FadePageRoute(child: const AdminHomeScreen());
       case mentorHome:
@@ -112,8 +108,8 @@ class RouteHelper {
       case 'mentor':
         routeName = mentorHome;
         break;
-      case 'parent':
-        routeName = parentHome;
+      case 'alumni':
+        routeName = alumniHome;
         break;
       case 'admin':
         routeName = adminHome;

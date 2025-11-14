@@ -17,7 +17,7 @@ class AdminRolesPermissions extends StatefulWidget {
 
 class _AdminRolesPermissionsState extends State<AdminRolesPermissions> {
   String _selectedRole = 'Student';
-  final List<String> _roles = ['Student', 'Teacher', 'Parent', 'Admin'];
+  final List<String> _roles = ['Student', 'Teacher', 'Admin'];
 
   final Map<String, Map<String, bool>> _permissions = {
     'Student': {
@@ -34,12 +34,6 @@ class _AdminRolesPermissionsState extends State<AdminRolesPermissions> {
       'createEvents': true,
       'viewStudents': true,
       'chatWithStudents': true,
-    },
-    'Parent': {
-      'viewChildAttendance': true,
-      'viewNotices': true,
-      'chatWithTeachers': true,
-      'viewChildProgress': true,
     },
     'Admin': {
       'manageUsers': true,

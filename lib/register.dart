@@ -1,6 +1,5 @@
 import 'package:campus_connect/login.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:campus_connect/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -131,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           _selectedRole = newValue;
                         });
                       },
-                      items: <String>['Student', 'Teacher', 'Parent']
+                      items: <String>['Student', 'Teacher', 'Alumni']
                           .map(
                             (role) => DropdownMenuItem(
                               value: role,
@@ -254,21 +253,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SnackBar(content: Text('Please fill all fields correctly')),
       );
       return;
-    }
-    if (_selectedRole == 'Parent') {
-      final parentEmail = _emailController.text.trim();
-      final students = await FirebaseFirestore.instance
-          .collection('students')
-          .where('parentEmail', isEqualTo: parentEmail)
-          .get();
-      if (students.docs.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Parent email not found in student records.'),
-          ),
-        );
-        return;
-      }
     }
     final error = await _authService.register(
       name: _nameController.text.trim(),

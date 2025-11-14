@@ -22,7 +22,7 @@ class _AdminUserManagementState extends State<AdminUserManagement>
   // String _searchQuery = '';
   String _selectedRole = 'All';
 
-  final List<String> _roles = ['All', 'Student', 'Teacher', 'Parent'];
+  final List<String> _roles = ['All', 'Student', 'Teacher'];
 
   @override
   void initState() {
@@ -269,7 +269,6 @@ class _AdminUserManagementState extends State<AdminUserManagement>
 
           final studentCount = users.where((u) => u.role == 'Student').length;
           final teacherCount = users.where((u) => u.role == 'Teacher').length;
-          final parentCount = users.where((u) => u.role == 'Parent').length;
           final pendingCount = users.where((u) => !u.approved).length;
 
           return SingleChildScrollView(
@@ -307,15 +306,6 @@ class _AdminUserManagementState extends State<AdminUserManagement>
               const SizedBox(height: AppTheme.spacingS),
               Row(
                 children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      "Parents",
-                      "$parentCount",
-                      Icons.family_restroom,
-                      AppTheme.warningColor,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingS),
                   Expanded(
                     child: _buildStatCard(
                       "Pending",
@@ -577,11 +567,10 @@ class _AdminUserManagementState extends State<AdminUserManagement>
   }
 
   Widget _buildRoleDistributionChart(List<UserModel> users) {
-    final roles = ['Student', 'Teacher', 'Parent'];
+    final roles = ['Student', 'Teacher'];
     final colors = [
       AppTheme.primaryColor,
       AppTheme.successColor,
-      AppTheme.warningColor,
     ];
 
     return CustomCard(
@@ -659,8 +648,6 @@ class _AdminUserManagementState extends State<AdminUserManagement>
         return AppTheme.primaryColor;
       case 'Teacher':
         return AppTheme.successColor;
-      case 'Parent':
-        return AppTheme.warningColor;
       default:
         return AppTheme.secondaryTextColor;
     }
@@ -717,7 +704,6 @@ class _AdminUserManagementState extends State<AdminUserManagement>
                   items: const [
                     DropdownMenuItem(value: 'Student', child: Text('Student')),
                     DropdownMenuItem(value: 'Teacher', child: Text('Teacher')),
-                    DropdownMenuItem(value: 'Parent', child: Text('Parent')),
                     DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                   ],
                   onChanged: (v) => roleController.value = v ?? 'Student',
@@ -802,7 +788,6 @@ class _AdminUserManagementState extends State<AdminUserManagement>
                   items: const [
                     DropdownMenuItem(value: 'Student', child: Text('Student')),
                     DropdownMenuItem(value: 'Teacher', child: Text('Teacher')),
-                    DropdownMenuItem(value: 'Parent', child: Text('Parent')),
                     DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                   ],
                   onChanged: (v) => roleController.value = v ?? user.role,
